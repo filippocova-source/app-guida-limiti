@@ -1,0 +1,2970 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calcolo dei Limiti – Laboratorio Guidato</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- KaTeX per una resa matematica nitida e immediata -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .katex-display {
+      margin: 0.4em 0 !important;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 2px;
+    }
+    .fade-in {
+      animation: fadeIn 0.28s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Custom scrollbar leggera per formule lunghe su schermi molto stretti */
+    .math-scroll::-webkit-scrollbar {
+      height: 5px;
+    }
+    .math-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+
+  <!-- ==================== HEADER E NAVIGAZIONE ==================== -->
+  <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <!-- Titolo App -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-sm shadow-sm shrink-0">
+          lim
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+            Laboratorio sui Limiti
+          </h1>
+          <p class="text-xs text-slate-500">
+            Calcolo, forme di indecisione, asintoti e discontinuità • Ripasso e Recupero
+          </p>
+        </div>
+      </div>
+
+      <!-- Schede di navigazione -->
+      <nav class="flex items-center bg-slate-100 p-1 rounded-xl w-full sm:w-auto" aria-label="Navigazione principale">
+        <button id="tab-practice" onclick="switchTab('practice')"
+          class="flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white text-indigo-700 shadow-sm">
+          Esercizio Guidato
+        </button>
+        <button id="tab-map" onclick="switchTab('map')"
+          class="flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 hover:text-slate-900">
+          Mappa dei Limiti
+        </button>
+        <button id="tab-history" onclick="switchTab('history')"
+          class="flex-1 sm:flex-initial px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5">
+          <span>Riepilogo</span>
+          <span id="badge-count" class="px-1.5 py-0.5 text-[11px] rounded-full bg-indigo-100 text-indigo-700 font-bold">0</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Toast di notifica (al posto di alert) -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden max-w-xs bg-slate-900 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg transition-all"></div>
+
+  <!-- ==================== CONTENUTO PRINCIPALE ==================== -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+    <!-- ==================== SEZIONE 1: ESERCIZIO GUIDATO ==================== -->
+    <section id="view-practice" class="space-y-6 fade-in">
+
+      <!-- Barra controlli: selezione categoria e nuovo esercizio -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-1">
+          <label for="category-select" class="text-xs font-semibold uppercase tracking-wider text-slate-500 shrink-0">
+            Tipologia:
+          </label>
+          <select id="category-select" onchange="startNewExercise()"
+            class="w-full sm:w-auto flex-1 max-w-sm rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="random">Casuale (Tutte le tipologie)</option>
+            <option value="razionale_intera">Razionali Intere (Diretto e F.I. ∞ − ∞)</option>
+            <option value="razionale_fratta_inf">Razionali Fratte per x → ±∞ (F.I. ∞ / ∞)</option>
+            <option value="razionale_fratta_x0">Razionali Fratte per x → x₀ (k/0± e F.I. 0 / 0)</option>
+            <option value="esponenziale">Funzioni Esponenziali (anche con esponente frazionario)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="switchTab('map')"
+            class="px-3.5 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-semibold hover:bg-indigo-100 transition-colors">
+            Consulta la Mappa
+          </button>
+          <button onclick="startNewExercise()"
+            class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 active:scale-[0.99] transition-all shadow-sm">
+            Nuovo Esercizio
+          </button>
+        </div>
+      </div>
+
+      <!-- Card Limite Corrente + Barra di avanzamento algoritmo -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <!-- Header limite -->
+        <div class="bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-6 text-white text-center relative">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-xs font-semibold tracking-wide mb-3">
+            <span id="exercise-number-label">Esercizio #1</span>
+            <span>•</span>
+            <span>Calcola il limite e interpreta il risultato</span>
+          </div>
+          <div id="function-display" class="text-2xl sm:text-3xl font-bold py-2 math-scroll">
+            <!-- Formula KaTeX -->
+          </div>
+          <p class="text-indigo-100 text-xs sm:text-sm mt-2">
+            Segui l'algoritmo in 4 passi: sostituisci, scegli la strategia, calcola e interpreta graficamente (asintoti o discontinuità).
+          </p>
+        </div>
+
+        <!-- Stepper dell'algoritmo (4 passi) -->
+        <div class="px-4 sm:px-6 py-4 bg-slate-50 border-b border-slate-200">
+          <div class="grid grid-cols-4 gap-2" id="stepper-container">
+            <!-- Popolato via JS -->
+          </div>
+        </div>
+
+        <!-- Area interattiva dello step corrente -->
+        <div id="step-area" class="p-5 sm:p-7 space-y-5">
+          <!-- Popolato via JS -->
+        </div>
+      </div>
+
+      <!-- Storico dei passi già completati nell'esercizio corrente (mini lavagna progressiva) -->
+      <div id="completed-steps-board" class="hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">
+          La tua lavagna – Passaggi già svolti
+        </h3>
+        <div id="completed-steps-list" class="space-y-2.5"></div>
+      </div>
+
+      <!-- Scheda Riepilogativa Finale (visibile al termine dei 4 passi) -->
+      <div id="final-summary-card" class="hidden space-y-6 fade-in">
+        <!-- Popolato via JS -->
+      </div>
+    </section>
+
+    <!-- ==================== SEZIONE 2: MAPPA DEI LIMITI ==================== -->
+    <section id="view-map" class="hidden space-y-6 fade-in">
+      <!-- Intro -->
+      <div class="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-6 sm:p-8 text-white shadow-sm">
+        <h2 class="text-xl sm:text-2xl font-extrabold mb-2">
+          Mappa Generale: L'Algoritmo del Calcolo dei Limiti
+        </h2>
+        <p class="text-indigo-100 text-sm sm:text-base max-w-3xl leading-relaxed">
+          Calcolare un limite significa scoprire <strong class="text-white">a quale valore si avvicina la funzione <span class="math-inline" data-tex="f(x)"></span> quando <span class="math-inline" data-tex="x"></span> si avvicina a un punto <span class="math-inline" data-tex="x_0"></span> oppure a <span class="math-inline" data-tex="\pm\infty"></span></strong>. Segui sempre i 4 passi dell'algoritmo e poi traduci il risultato sul grafico!
+        </p>
+      </div>
+
+      <!-- BLOCCO 1: ALGORITMO DI BASE -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-extrabold">1</span>
+          L'Algoritmo Mentale: Passo Zero e Casi Immediati
+        </h3>
+        <p class="text-sm text-slate-600">
+          La prima mossa è <strong>SEMPRE la sostituzione diretta</strong> del valore a cui tende <span class="math-inline" data-tex="x"></span> nella funzione. A quel punto possono succedere due cose: ottieni subito un risultato (anche con <span class="math-inline" data-tex="\infty"></span>), oppure cadi in una <strong>Forma di Indecisione (F.I.)</strong>.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          <!-- Caso A -->
+          <div class="rounded-xl border-2 border-emerald-100 bg-emerald-50/60 p-4 space-y-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Caso A • Risultato Finito</span>
+            <p class="text-sm font-semibold text-slate-800">
+              Sostituendo ottieni un numero reale <span class="math-inline" data-tex="L \in \mathbb{R}"></span>.
+            </p>
+            <div class="bg-white rounded-lg p-2.5 border border-emerald-200 text-center text-sm">
+              <span class="math-inline" data-tex="\lim_{x \to 2}(x^2 + 1) = 5"></span>
+            </div>
+            <p class="text-xs text-slate-600">
+              <strong>Fatto!</strong> Il limite è già calcolato (funzione continua in <span class="math-inline" data-tex="x_0"></span>).
+            </p>
+          </div>
+
+          <!-- Caso B -->
+          <div class="rounded-xl border-2 border-sky-100 bg-sky-50/60 p-4 space-y-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-700">Caso B • Algebra degli Infiniti</span>
+            <p class="text-sm font-semibold text-slate-800">
+              Operazioni NON indeterminate con <span class="math-inline" data-tex="0"></span> e <span class="math-inline" data-tex="\infty"></span>:
+            </p>
+            <div class="bg-white rounded-lg p-2.5 border border-sky-200 text-center space-y-1 text-xs sm:text-sm">
+              <div><span class="math-inline font-bold text-sky-800" data-tex="\frac{k}{\pm\infty} = 0"></span> &nbsp;•&nbsp; <span class="math-inline font-bold text-sky-800" data-tex="\frac{k}{0^\pm} = \pm\infty \;(k \neq 0)"></span></div>
+              <div><span class="math-inline" data-tex="+\infty + \infty = +\infty"></span> &nbsp;•&nbsp; <span class="math-inline" data-tex="-\infty - \infty = -\infty"></span></div>
+            </div>
+            <p class="text-xs text-slate-600">
+              <strong>Attenzione ai segni:</strong> in <span class="math-inline" data-tex="\frac{k}{0^\pm}"></span> si applica la regola dei segni tra <span class="math-inline" data-tex="k"></span> e <span class="math-inline" data-tex="0^\pm"></span>!
+            </p>
+          </div>
+
+          <!-- Caso C -->
+          <div class="rounded-xl border-2 border-rose-100 bg-rose-50/60 p-4 space-y-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-rose-700">Caso C • Forma di Indecisione</span>
+            <p class="text-sm font-semibold text-slate-800">
+              Se sostituendo ottieni una di queste 3 forme:
+            </p>
+            <div class="bg-white rounded-lg p-2.5 border border-rose-200 text-center">
+              <span class="math-inline font-bold text-rose-700" data-tex="[+\infty - \infty] \quad \left[\frac{\infty}{\infty}\right] \quad \left[\frac{0}{0}\right]"></span>
+            </div>
+            <p class="text-xs text-slate-600">
+              <strong>Non puoi concludere subito!</strong> Devi trasformare algebricamente la funzione prima di ricalcolare il limite.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCCO 2: LE 3 FORME DI INDECISIONE -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-extrabold">2</span>
+          Come Risolvere le 3 Forme di Indecisione (Funzioni Razionali)
+        </h3>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- F.I. Inf - Inf -->
+          <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-2.5 flex flex-col">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase text-amber-800">Polinomi per x → ±∞</span>
+              <span class="px-2 py-0.5 rounded-md bg-amber-200/70 text-amber-900 text-xs font-bold">
+                <span class="math-inline" data-tex="\infty - \infty"></span>
+              </span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700">
+              <strong>Strategia:</strong> raccogli la potenza di <span class="math-inline" data-tex="x"></span> di <strong>grado massimo</strong> (oppure considera solo il termine dominante).
+            </p>
+            <div class="bg-white rounded-lg p-3 border border-amber-200 text-xs sm:text-sm space-y-1 flex-1">
+              <div class="font-semibold text-slate-800">Esempio:</div>
+              <div><span class="math-inline" data-tex="\lim_{x\to+\infty}(2x^3 - 5x^2 + 1)"></span></div>
+              <div><span class="math-inline" data-tex="= \lim_{x\to+\infty} x^3\left(2 - \frac{5}{x} + \frac{1}{x^3}\right) = +\infty"></span></div>
+            </div>
+            <p class="text-xs text-slate-500">
+              I termini con <span class="math-inline" data-tex="x"></span> al denominatore tendono tutti a <span class="math-inline" data-tex="0"></span>.
+            </p>
+          </div>
+
+          <!-- F.I. Inf / Inf -->
+          <div class="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-2.5 flex flex-col">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase text-indigo-800">Fratte per x → ±∞</span>
+              <span class="px-2 py-0.5 rounded-md bg-indigo-200/70 text-indigo-900 text-xs font-bold">
+                <span class="math-inline" data-tex="\frac{\infty}{\infty}"></span>
+              </span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700">
+              <strong>Strategia:</strong> raccogli la <span class="math-inline" data-tex="x"></span> di grado massimo a numeratore (<span class="math-inline" data-tex="n"></span>) e denominatore (<span class="math-inline" data-tex="m"></span>) e confronta i gradi:
+            </p>
+            <div class="bg-white rounded-lg p-3 border border-indigo-200 text-xs space-y-1.5 flex-1">
+              <div>• Se <span class="math-inline font-bold" data-tex="n > m"></span> &rarr; <span class="math-inline font-bold text-indigo-700" data-tex="\pm\infty"></span> (controlla il segno!)</div>
+              <div>• Se <span class="math-inline font-bold" data-tex="n = m"></span> &rarr; <span class="math-inline font-bold text-indigo-700" data-tex="\frac{a_n}{b_m}"></span> (rapporto coeff. direttori)</div>
+              <div>• Se <span class="math-inline font-bold" data-tex="n < m"></span> &rarr; <span class="math-inline font-bold text-indigo-700" data-tex="0"></span></div>
+            </div>
+            <p class="text-xs text-slate-500">
+              Vale sia per <span class="math-inline" data-tex="x \to +\infty"></span> che per <span class="math-inline" data-tex="x \to -\infty"></span>.
+            </p>
+          </div>
+
+          <!-- F.I. 0 / 0 -->
+          <div class="rounded-xl border border-rose-200 bg-rose-50/50 p-4 space-y-2.5 flex flex-col">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase text-rose-800">Fratte per x → x₀</span>
+              <span class="px-2 py-0.5 rounded-md bg-rose-200/70 text-rose-900 text-xs font-bold">
+                <span class="math-inline" data-tex="\frac{0}{0}"></span>
+              </span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700">
+              <strong>Strategia:</strong> <strong>scomponi</strong> numeratore e denominatore (prodotti notevoli, trinomio speciale, Ruffini) e <strong>semplifica</strong> il fattore <span class="math-inline" data-tex="(x - x_0)"></span>.
+            </p>
+            <div class="bg-white rounded-lg p-3 border border-rose-200 text-xs sm:text-sm space-y-1 flex-1">
+              <div class="font-semibold text-slate-800">Esempio:</div>
+              <div><span class="math-inline" data-tex="\lim_{x\to 3}\frac{x^2 - 9}{x - 3} = \lim_{x\to 3}\frac{(x-3)(x+3)}{x-3}"></span></div>
+              <div><span class="math-inline" data-tex="= \lim_{x\to 3}(x + 3) = 6"></span></div>
+            </div>
+            <p class="text-xs text-slate-500">
+              Dopo la semplificazione, sostituisci di nuovo <span class="math-inline" data-tex="x_0"></span>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCCO 3: FUNZIONI ESPONENZIALI ED ESPONENTE FRAZIONARIO -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-extrabold">3</span>
+          Limiti di Funzioni Esponenziali (e Caso dell'Esponente Frazionario)
+        </h3>
+        <p class="text-sm text-slate-600">
+          Per calcolare <span class="math-inline" data-tex="\lim a^{g(x)}"></span> si calcola <strong>prima il limite dell'esponente <span class="math-inline" data-tex="g(x)"></span></strong> e poi si applicano le proprietà della base <span class="math-inline" data-tex="a"></span>:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-2">
+            <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Base a &gt; 1 (es. e, 2, 3) • Crescente</div>
+            <div class="grid grid-cols-2 gap-2 text-center">
+              <div class="bg-white rounded-lg p-2.5 border border-emerald-200">
+                <span class="math-inline font-bold text-emerald-800" data-tex="a^{+\infty} = +\infty"></span>
+              </div>
+              <div class="bg-white rounded-lg p-2.5 border border-emerald-200">
+                <span class="math-inline font-bold text-emerald-800" data-tex="a^{-\infty} = 0^+"></span>
+              </div>
+            </div>
+            <p class="text-xs text-slate-600">
+              Es. <span class="math-inline" data-tex="e^{+\infty} = +\infty"></span>, mentre <span class="math-inline" data-tex="e^{-\infty} = \frac{1}{e^{+\infty}} = 0^+"></span>.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-violet-200 bg-violet-50/50 p-4 space-y-2">
+            <div class="text-xs font-bold uppercase tracking-wider text-violet-800">Base 0 &lt; a &lt; 1 (es. 1/2, 1/3) • Decrescente</div>
+            <div class="grid grid-cols-2 gap-2 text-center">
+              <div class="bg-white rounded-lg p-2.5 border border-violet-200">
+                <span class="math-inline font-bold text-violet-800" data-tex="a^{+\infty} = 0^+"></span>
+              </div>
+              <div class="bg-white rounded-lg p-2.5 border border-violet-200">
+                <span class="math-inline font-bold text-violet-800" data-tex="a^{-\infty} = +\infty"></span>
+              </div>
+            </div>
+            <p class="text-xs text-slate-600">
+              Es. <span class="math-inline" data-tex="\left(\frac{1}{2}\right)^{+\infty} = 0^+"></span>, mentre <span class="math-inline" data-tex="\left(\frac{1}{2}\right)^{-\infty} = 2^{+\infty} = +\infty"></span>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Focus Esponente Frazionario -->
+        <div class="rounded-xl border-2 border-indigo-200 bg-indigo-50/60 p-4 sm:p-5 space-y-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-md bg-indigo-600 text-white text-xs font-bold uppercase">Focus Speciale</span>
+            <h4 class="text-sm sm:text-base font-bold text-indigo-950">
+              Esponenziale con Esponente Frazionario: <span class="math-inline" data-tex="f(x) = a^{\frac{N(x)}{D(x)}}"></span>
+            </h4>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <strong>Algoritmo in 2 mosse:</strong> (1) isolare l'esponente frazionario <span class="math-inline" data-tex="g(x) = \frac{N(x)}{D(x)}"></span> e calcolarne il limite; (2) applicare la base <span class="math-inline" data-tex="a"></span> al risultato ottenuto.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm">
+            <div class="bg-white rounded-xl p-3.5 border border-indigo-100 space-y-1.5">
+              <div class="font-bold text-indigo-800">Caso 1: <span class="math-inline" data-tex="x \to x_0^\pm"></span> (dove <span class="math-inline" data-tex="D(x_0) = 0"></span>)</div>
+              <p class="text-slate-600">Distingui sempre limite destro e sinistro! L'esponente tende a <span class="math-inline" data-tex="+\infty"></span> da un lato e a <span class="math-inline" data-tex="-\infty"></span> dall'altro:</p>
+              <div class="bg-slate-50 rounded-lg p-2 text-center">
+                <span class="math-inline" data-tex="\lim_{x \to 0^+} e^{\frac{1}{x}} = e^{+\infty} = +\infty \quad;\quad \lim_{x \to 0^-} e^{\frac{1}{x}} = e^{-\infty} = 0"></span>
+              </div>
+              <p class="text-[11px] text-rose-700 font-medium">
+                &rarr; Asintoto verticale destro <span class="math-inline" data-tex="x=0"></span> e discontinuità di 2ª specie!
+              </p>
+            </div>
+            <div class="bg-white rounded-xl p-3.5 border border-indigo-100 space-y-1.5">
+              <div class="font-bold text-indigo-800">Caso 2: <span class="math-inline" data-tex="x \to \pm\infty"></span> (F.I. <span class="math-inline" data-tex="\frac{\infty}{\infty}"></span> all'esponente)</div>
+              <p class="text-slate-600">Risolvi la F.I. <span class="math-inline" data-tex="\frac{\infty}{\infty}"></span> nell'esponente (confronto dei gradi) e poi eleva la base:</p>
+              <div class="bg-slate-50 rounded-lg p-2 text-center">
+                <span class="math-inline" data-tex="\lim_{x \to +\infty} e^{\frac{2x+1}{x-3}} = e^2"></span>
+              </div>
+              <p class="text-[11px] text-emerald-700 font-medium">
+                &rarr; Limite finito per <span class="math-inline" data-tex="x \to +\infty"></span>: Asintoto Orizzontale <span class="math-inline" data-tex="y = e^2"></span>!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCCO 4: INTERPRETAZIONE GRAFICA (ASINTOTI E DISCONTINUITÀ) -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-5">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-extrabold">4</span>
+          Interpretazione Grafica: Asintoti e Punti di Discontinuità
+        </h3>
+
+        <!-- Tabella Asintoti -->
+        <div class="space-y-2">
+          <h4 class="text-sm font-bold uppercase tracking-wider text-indigo-700">A. Riconoscere gli Asintoti</h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr class="border-b-2 border-slate-200 text-xs uppercase tracking-wider text-slate-500">
+                  <th class="py-2.5 pr-3">Risultato del Limite</th>
+                  <th class="py-2.5 px-3">Tipo di Asintoto</th>
+                  <th class="py-2.5 px-3">Equazione</th>
+                  <th class="py-2.5 pl-3">Note Grafiche</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-slate-700">
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 pr-3"><span class="math-inline font-semibold" data-tex="\lim_{x \to x_0^\pm} f(x) = \pm\infty"></span></td>
+                  <td class="py-3 px-3 font-bold text-rose-700">Asintoto Verticale (A.V.)</td>
+                  <td class="py-3 px-3"><span class="math-inline font-bold" data-tex="x = x_0"></span></td>
+                  <td class="py-3 pl-3 text-xs text-slate-600">Basta che almeno uno tra limite destro o sinistro sia infinito (asintoto destro, sinistro o bilatero).</td>
+                </tr>
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 pr-3"><span class="math-inline font-semibold" data-tex="\lim_{x \to \pm\infty} f(x) = L \in \mathbb{R}"></span></td>
+                  <td class="py-3 px-3 font-bold text-emerald-700">Asintoto Orizzontale (A.O.)</td>
+                  <td class="py-3 px-3"><span class="math-inline font-bold" data-tex="y = L"></span></td>
+                  <td class="py-3 pl-3 text-xs text-slate-600">La curva si schiaccia sulla retta orizzontale <span class="math-inline" data-tex="y = L"></span> per <span class="math-inline" data-tex="x \to +\infty"></span> o <span class="math-inline" data-tex="x \to -\infty"></span>.</td>
+                </tr>
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 pr-3"><span class="math-inline font-semibold" data-tex="\lim_{x \to \pm\infty} f(x) = \pm\infty"></span></td>
+                  <td class="py-3 px-3 font-semibold text-slate-600">Nessun Asintoto Orizzontale</td>
+                  <td class="py-3 px-3 text-xs text-slate-500">—</td>
+                  <td class="py-3 pl-3 text-xs text-slate-600">Se è una fratta con <span class="math-inline" data-tex="\text{grado } N = \text{grado } D + 1"></span>, esiste un eventuale <strong>Asintoto Obliquo</strong> <span class="math-inline" data-tex="y = mx + q"></span>.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Schede Discontinuità -->
+        <div class="space-y-2.5 pt-2">
+          <h4 class="text-sm font-bold uppercase tracking-wider text-indigo-700">B. Classificazione delle Discontinuità in un punto <span class="math-inline" data-tex="x_0"></span></h4>
+          <p class="text-xs sm:text-sm text-slate-600">
+            Se <span class="math-inline" data-tex="x_0 \in D(f)"></span> e <span class="math-inline" data-tex="\lim_{x\to x_0} f(x) = f(x_0)"></span>, la funzione è <strong>continua</strong>. Altrimenti (es. <span class="math-inline" data-tex="x_0 \notin D(f)"></span>) si classifica la discontinuità così:
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-xl bg-amber-50/70 border border-amber-200 p-4 space-y-1.5">
+              <div class="font-bold text-amber-900 text-sm">1ª Specie (di Salto)</div>
+              <div class="text-xs text-slate-700">
+                <span class="math-inline" data-tex="\lim_{x\to x_0^-} f(x) = l_1 \neq l_2 = \lim_{x\to x_0^+} f(x)"></span>
+              </div>
+              <p class="text-xs text-slate-600 pt-1">
+                Entrambi i limiti destro e sinistro sono <strong>finiti ma diversi</strong>. Il grafico fa un "salto" di altezza <span class="math-inline" data-tex="|l_2 - l_1|"></span>.
+              </p>
+            </div>
+
+            <div class="rounded-xl bg-rose-50/70 border border-rose-200 p-4 space-y-1.5">
+              <div class="font-bold text-rose-900 text-sm">2ª Specie (Essenziale / Infinita)</div>
+              <div class="text-xs text-slate-700">
+                Almeno uno tra <span class="math-inline" data-tex="\lim_{x\to x_0^-} f(x)"></span> e <span class="math-inline" data-tex="\lim_{x\to x_0^+} f(x)"></span> è <span class="math-inline font-bold" data-tex="\pm\infty"></span> (o non esiste).
+              </div>
+              <p class="text-xs text-slate-600 pt-1">
+                Corrisponde alla presenza di un <strong>Asintoto Verticale</strong> <span class="math-inline" data-tex="x = x_0"></span> (es. caso <span class="math-inline" data-tex="k/0^\pm"></span> o <span class="math-inline" data-tex="e^{1/x}"></span> in <span class="math-inline" data-tex="0"></span>).
+              </p>
+            </div>
+
+            <div class="rounded-xl bg-sky-50/70 border border-sky-200 p-4 space-y-1.5">
+              <div class="font-bold text-sky-900 text-sm">3ª Specie (Eliminabile)</div>
+              <div class="text-xs text-slate-700">
+                <span class="math-inline" data-tex="\lim_{x\to x_0} f(x) = L \in \mathbb{R}"></span>, ma <span class="math-inline" data-tex="x_0 \notin D(f)"></span> (o <span class="math-inline" data-tex="f(x_0) \neq L"></span>).
+              </div>
+              <p class="text-xs text-slate-600 pt-1">
+                Il grafico presenta un semplice <strong>"buco"</strong> nel punto <span class="math-inline" data-tex="(x_0, L)"></span>, senza asintoto verticale! Tipica delle F.I. <span class="math-inline" data-tex="\frac{0}{0}"></span>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 text-center">
+          <button onclick="switchTab('practice')"
+            class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
+            Torna all'Esercizio Guidato
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SEZIONE 3: RIEPILOGO SESSIONE (CLASSROOM) ==================== -->
+    <section id="view-history" class="hidden space-y-6 fade-in">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Riepilogo della tua Sessione</h2>
+            <p class="text-sm text-slate-500">
+              Monitora i progressi sul calcolo dei limiti e copia il resoconto da consegnare su Google Classroom.
+            </p>
+          </div>
+          <button onclick="copyClassroomReport()"
+            class="px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm shrink-0">
+            Copia Resoconto per Classroom
+          </button>
+        </div>
+
+        <!-- Statistiche -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="p-4 rounded-xl bg-indigo-50 border border-indigo-100">
+            <div class="text-xs font-semibold uppercase text-indigo-600">Esercizi Completati</div>
+            <div id="stat-total" class="text-3xl font-extrabold text-indigo-900 mt-1">0</div>
+          </div>
+          <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+            <div class="text-xs font-semibold uppercase text-emerald-600">Senza Errori</div>
+            <div id="stat-perfect" class="text-3xl font-extrabold text-emerald-900 mt-1">0</div>
+          </div>
+          <div class="p-4 rounded-xl bg-amber-50 border border-amber-100">
+            <div class="text-xs font-semibold uppercase text-amber-600">Errori Analizzati</div>
+            <div id="stat-errors" class="text-3xl font-extrabold text-amber-900 mt-1">0</div>
+          </div>
+        </div>
+
+        <!-- Lista esercizi svolti -->
+        <div id="history-list" class="space-y-3">
+          <div class="text-center py-8 text-slate-400 text-sm">
+            Non hai ancora completato nessun esercizio. Inizia subito dalla scheda "Esercizio Guidato"!
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
+    Laboratorio Interattivo sul Calcolo dei Limiti • Ripasso e Recupero (Razionali Intere, Fratte ed Esponenziali)
+  </footer>
+
+  <!-- ==================== LOGICA APPLICATIVA JAVASCRIPT ==================== -->
+  <script>
+    // =========================================================================
+    // 1. UTILITÀ MATEMATICHE E DI RENDERING (KaTeX)
+    // =========================================================================
+
+    /**
+     * Renderizza una stringa LaTeX in HTML tramite KaTeX con fallback sicuro.
+     */
+    function renderTex(tex, displayMode = false) {
+      try {
+        if (window.katex) {
+          return window.katex.renderToString(tex, {
+            displayMode: displayMode,
+            throwOnError: false,
+            strict: false
+          });
+        }
+      } catch (err) {
+        console.error('Errore rendering KaTeX:', err);
+      }
+      return `<span class="font-mono">${tex}</span>`;
+    }
+
+    /**
+     * Renderizza tutti gli elementi statici con classe .math-inline nella Mappa.
+     */
+    function renderStaticMath() {
+      document.querySelectorAll('.math-inline').forEach(el => {
+        const tex = el.getAttribute('data-tex');
+        if (tex) {
+          el.innerHTML = renderTex(tex, false);
+        }
+      });
+    }
+
+    /**
+     * Sceglie un elemento casuale da un array.
+     */
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    /**
+     * Mescola un array (Fisher-Yates) senza mutare l'originale.
+     */
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    /**
+     * Formatta un termine lineare ax + b in modo pulito.
+     */
+    function formatLinear(a, b) {
+      let partA = '';
+      if (a === 1) partA = 'x';
+      else if (a === -1) partA = '-x';
+      else partA = `${a}x`;
+
+      if (b === 0) return partA;
+      return b > 0 ? `${partA} + ${b}` : `${partA} - ${Math.abs(b)}`;
+    }
+
+    /**
+     * Formatta un polinomio di secondo grado ax^2 + bx + c.
+     */
+    function formatQuad(a, b, c) {
+      let str = a === 1 ? 'x^2' : (a === -1 ? '-x^2' : `${a}x^2`);
+      if (b !== 0) {
+        if (b === 1) str += ' + x';
+        else if (b === -1) str += ' - x';
+        else str += b > 0 ? ` + ${b}x` : ` - ${Math.abs(b)}x`;
+      }
+      if (c !== 0) {
+        str += c > 0 ? ` + ${c}` : ` - ${Math.abs(c)}`;
+      }
+      return str;
+    }
+
+    /**
+     * Mostra un messaggio toast elegante senza usare alert().
+     */
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    // =========================================================================
+    // 2. GENERATORI PARAMETRICI DI ESERCIZI SUI LIMITI (10 FAMIGLIE)
+    // =========================================================================
+
+    // --- 1. Razionale Intera: Calcolo diretto per x -> x0 (Continuità) ---
+    function genPolyDirect() {
+      const a = pick([1, 2, -1]);
+      const b = pick([-3, -2, 2, 3]);
+      const c = pick([-4, -1, 1, 3, 5]);
+      const x0 = pick([-2, -1, 1, 2, 3]);
+      const polyTex = formatQuad(a, b, c);
+      const res = a * x0 * x0 + b * x0 + c;
+
+      const wrong1 = a * x0 + b * x0 + c;
+      const wrong2 = res + (res === 0 ? 2 : -2 * c);
+      const wrongA = wrong1 === res ? res + 3 : wrong1;
+      const wrongB = (wrong2 === res || wrong2 === wrongA) ? res - 4 : wrong2;
+
+      return {
+        id: `poly_dir_${polyTex}_${x0}`,
+        category: 'razionale_intera',
+        categoryLabel: 'Razionale Intera • Calcolo Diretto',
+        tex: `\\lim_{x \\to ${x0}} (${polyTex})`,
+        plainText: `lim (x->${x0}) (${polyTex})`,
+        resultTex: `${res}`,
+        interpretationShort: `Funzione continua in x = ${x0} (nessun asintoto, nessuna discontinuità)`,
+        graph: { type: 'continuous', x0: x0, L: res },
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: `Primo passo: sostituisci x = ${x0} nel polinomio. Che situazione ottieni?`,
+            options: [
+              {
+                text: 'Un calcolo aritmetico diretto che produce subito un numero reale finito (nessuna forma di indecisione).',
+                correct: true,
+                feedback: 'Esatto! I polinomi sono definiti e continui su tutto ℝ: per x → x₀ basta sostituire!'
+              },
+              {
+                text: 'Una forma di indecisione del tipo 0/0.',
+                correct: false,
+                errorTag: 'F.I. inesistente su polinomio',
+                feedback: 'Non c\'è alcuna frazione né denominatore che si annulla: non può esserci 0/0!'
+              },
+              {
+                text: 'Una forma di indecisione del tipo ∞ − ∞.',
+                correct: false,
+                errorTag: 'Confusione x → x₀ con x → ∞',
+                feedback: `Qui x tende al numero finito ${x0}, non a ±∞! Non compaiono infiniti.`
+              },
+              {
+                text: 'Una divisione per zero (k/0).',
+                correct: false,
+                errorTag: 'Denominatore inesistente',
+                feedback: 'La funzione è razionale intera (non ha denominatore).'
+              }
+            ],
+            theory: 'Per ogni funzione polinomiale, quando <span class="font-semibold">x → x₀</span> (finito), il limite coincide sempre con il valore <strong>f(x₀)</strong>.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: 'Qual è quindi il procedimento corretto da applicare?',
+            options: [
+              {
+                text: `Calcolo diretto: sostituisco ${x0} al posto della x rispettando l'ordine delle operazioni (prima le potenze, poi prodotti e somme).`,
+                correct: true,
+                feedback: 'Perfetto! Nessuna manipolazione algebrica è necessaria.'
+              },
+              {
+                text: 'Devo raccogliere la x di grado massimo.',
+                correct: false,
+                errorTag: 'Raccoglimento grado massimo usato per x → x₀',
+                feedback: 'Il raccoglimento del grado massimo serve solo quando x → ±∞ per risolvere ∞ − ∞ o ∞/∞!'
+              },
+              {
+                text: 'Devo scomporre il polinomio con Ruffini.',
+                correct: false,
+                errorTag: 'Scomposizione superflua',
+                feedback: 'La scomposizione serve solo per sciogliere una forma 0/0 in una frazione.'
+              },
+              {
+                text: 'Devo calcolare separatamente limite destro e sinistro.',
+                correct: false,
+                errorTag: 'Distinzione destro/sinistro superflua',
+                feedback: 'Un polinomio non ha salti né denominatori: limite destro e sinistro sono identici.'
+              }
+            ],
+            theory: 'Non complicare mai i calcoli: se la sostituzione diretta funziona subito, il limite è immediato!'
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: `Quanto vale esattamente il limite sostituendo x = ${x0}?`,
+            options: [
+              {
+                tex: `${res}`,
+                correct: true,
+                feedback: `Esatto! Infatti ${a}·(${x0})² + (${b})·(${x0}) + (${c}) = ${res}.`
+              },
+              {
+                tex: `${wrongA}`,
+                correct: false,
+                errorTag: 'Errore di calcolo aritmetico/potenza',
+                feedback: `Ricontrolla il quadrato (${x0})² = ${x0 * x0} e i segni dei prodotti!`
+              },
+              {
+                tex: `${wrongB}`,
+                correct: false,
+                errorTag: 'Errore di segno nei calcoli',
+                feedback: `Fai attenzione ai segni quando moltiplichi per ${x0}: il risultato corretto è ${res}.`
+              },
+              {
+                tex: `+\\infty`,
+                correct: false,
+                errorTag: 'Risultato infinito per x → x₀ su polinomio',
+                feedback: 'Sostituendo un numero finito in un polinomio si ottiene sempre un numero finito!'
+              }
+            ],
+            theory: `Sostituendo x = ${x0} si ottiene <strong>f(${x0}) = ${res}</strong>.`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `Cosa indica il risultato lim (x → ${x0}) f(x) = ${res} sul grafico della funzione?`,
+            options: [
+              {
+                text: `Nessun asintoto e nessuna discontinuità: la funzione è continua nel punto (${x0}, ${res}).`,
+                correct: true,
+                feedback: `Perfetto! Poiché ${x0} appartiene al dominio ℝ e il limite coincide con f(${x0}), il grafico passa in modo continuo per (${x0}, ${res}).`
+              },
+              {
+                text: `Asintoto orizzontale di equazione y = ${res}.`,
+                correct: false,
+                errorTag: 'Confusione continuità con asintoto orizzontale',
+                feedback: 'Attenzione! L\'asintoto orizzontale si ha SOLO quando x → ±∞ e il limite è finito, mai per x → x₀ finito!'
+              },
+              {
+                text: `Asintoto verticale di equazione x = ${x0}.`,
+                correct: false,
+                errorTag: 'Confusione continuità con asintoto verticale',
+                feedback: 'Per avere un asintoto verticale il limite per x → x₀ deve essere ±∞, non un numero finito!'
+              },
+              {
+                text: `Discontinuità di 3ª specie (eliminabile) in x = ${x0}.`,
+                correct: false,
+                errorTag: 'Confusione continuità con 3ª specie',
+                feedback: `La discontinuità di 3ª specie si ha solo se x = ${x0} NON appartiene al dominio (un "buco"), ma qui il dominio è tutto ℝ!`
+              }
+            ],
+            theory: 'Un limite finito per <span class="font-semibold">x → x₀</span> con <span class="font-semibold">x₀ ∈ D(f)</span> e <span class="font-semibold">lim = f(x₀)</span> indica semplicemente <strong>continuità</strong>.'
+          }
+        ]
+      };
+    }
+
+    // --- 2. Razionale Intera: F.I. +∞ - ∞ per x -> +∞ ---
+    function genPolyInfMinusInf() {
+      const leadPos = Math.random() < 0.55;
+      const deg = pick([2, 3]);
+      const a = pick([1, 2, 3]) * (leadPos ? 1 : -1);
+      const b = pick([2, 3, 4, 5]) * (leadPos ? -1 : 1); // segno opposto per creare F.I. ∞ - ∞
+      const c = pick([-5, -2, 1, 4]);
+
+      let polyTex = '';
+      if (deg === 3) {
+        const t1 = a === 1 ? 'x^3' : (a === -1 ? '-x^3' : `${a}x^3`);
+        const t2 = b > 0 ? `+ ${b}x^2` : `- ${Math.abs(b)}x^2`;
+        const t3 = c > 0 ? `+ ${c}` : `- ${Math.abs(c)}`;
+        polyTex = `${t1} ${t2} ${t3}`;
+      } else {
+        polyTex = formatQuad(a, b, c);
+      }
+
+      const resTex = leadPos ? '+\\infty' : '-\\infty';
+      const wrongInf = leadPos ? '-\\infty' : '+\\infty';
+
+      return {
+        id: `poly_fi_${polyTex}`,
+        category: 'razionale_intera',
+        categoryLabel: 'Razionale Intera • F.I. (∞ − ∞)',
+        tex: `\\lim_{x \\to +\\infty} (${polyTex})`,
+        plainText: `lim (x->+inf) (${polyTex})`,
+        resultTex: resTex,
+        interpretationShort: `Nessun asintoto orizzontale (la funzione diverge a ${leadPos ? '+∞' : '-∞'})`,
+        graph: { type: 'diverge_inf', side: 'right', sign: leadPos ? 1 : -1 },
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: 'Sostituendo mentalmente x → +∞ nei vari termini del polinomio, quale situazione si presenta?',
+            options: [
+              {
+                tex: `\\text{Forma di indecisione } [+\\infty - \\infty]`,
+                correct: true,
+                feedback: 'Esatto! I due termini con la x hanno segni opposti: uno tende a +∞ e l\'altro a -∞, generando la F.I. ∞ − ∞.'
+              },
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{\\infty}{\\infty}\\right]`,
+                correct: false,
+                errorTag: 'Confusione tra ∞ − ∞ e ∞/∞',
+                feedback: 'Qui non c\'è alcuna frazione: è una somma algebrica di termini che tendono a +∞ e −∞.'
+              },
+              {
+                tex: `\\text{Fa subito } 0 \\text{ perché } \\infty - \\infty = 0`,
+                correct: false,
+                errorTag: 'Errore grave: ∞ − ∞ = 0',
+                feedback: 'Attenzione! ∞ − ∞ NON fa 0: gli infiniti possono avere "velocità" diverse! È una forma di indecisione.'
+              },
+              {
+                tex: `\\text{Risultato immediato } ${c}`,
+                correct: false,
+                errorTag: 'Ignorati i termini con la x',
+                feedback: 'Il termine noto conta pochissimo rispetto a potenze di x che vanno all\'infinito!'
+              }
+            ],
+            theory: 'Quando in un polinomio per <span class="font-semibold">x → ±∞</span> compaiono termini che tendono a +∞ e altri a −∞, si ha la forma di indecisione <strong>∞ − ∞</strong>.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: 'Come si scioglie la forma di indecisione ∞ − ∞ in un polinomio?',
+            options: [
+              {
+                text: `Raccolgo la potenza di x di grado massimo (x${deg === 3 ? '³' : '²'}): il limite dipende solo dal termine dominante.`,
+                correct: true,
+                feedback: `Perfetto! Raccogliendo x${deg === 3 ? '³' : '²'}, tutti gli altri termini diventano frazioni con x al denominatore e tendono a 0.`
+              },
+              {
+                text: 'Scompongo il polinomio in fattori lineari e semplifico.',
+                correct: false,
+                errorTag: 'Strategia di 0/0 usata su ∞ − ∞',
+                feedback: 'La scomposizione e semplificazione si usa per le frazioni nella forma 0/0.'
+              },
+              {
+                text: 'Sostituisco x = 0 per trovare il termine noto.',
+                correct: false,
+                errorTag: 'Sostituito 0 invece di +∞',
+                feedback: 'Stiamo calcolando il limite per x → +∞, non per x → 0!'
+              },
+              {
+                text: 'Tengo solo il termine con il coefficiente numericamente più grande in valore assoluto.',
+                correct: false,
+                errorTag: 'Confusione tra coefficiente più grande e grado massimo',
+                feedback: 'Non comanda il coefficiente più grande, ma la POTENZA DI GRADO MASSIMO (es. x³ batte sempre 100x² all\'infinito!).'
+              }
+            ],
+            theory: 'Per <span class="font-semibold">x → ±∞</span>, un polinomio si comporta esattamente come il suo <strong>monomio di grado massimo</strong>.'
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: `Guardando il termine di grado massimo (${a === 1 ? '' : (a === -1 ? '-' : a)}x${deg === 3 ? '³' : '²'}) per x → +∞, qual è il risultato del limite?`,
+            options: [
+              {
+                tex: resTex,
+                correct: true,
+                feedback: `Corretto! Per x → +∞, x${deg === 3 ? '³' : '²'} → +∞, moltiplicato per il coefficiente ${a} (${leadPos ? 'positivo' : 'negativo'}) dà ${leadPos ? '+∞' : '−∞'}.`
+              },
+              {
+                tex: wrongInf,
+                correct: false,
+                errorTag: 'Errore di segno sul termine dominante',
+                feedback: `Controlla il segno del coefficiente del termine di grado massimo: è ${a} (${leadPos ? 'positivo' : 'negativo'})!`
+              },
+              {
+                tex: `0`,
+                correct: false,
+                errorTag: 'Creduto che ∞ − ∞ = 0',
+                feedback: 'Un polinomio di grado ≥ 1 non tende mai a 0 all\'infinito: diverge sempre a +∞ o −∞!'
+              },
+              {
+                tex: `${a}`,
+                correct: false,
+                errorTag: 'Dimenticata la potenza di x',
+                feedback: `${a} è solo il coefficiente! Moltiplicato per x${deg === 3 ? '³' : '²'} → +∞ diventa ${leadPos ? '+∞' : '−∞'}.`
+              }
+            ],
+            theory: `Raccogliendo x${deg === 3 ? '³' : '²'} si ottiene x${deg === 3 ? '³' : '²'}·(${a} + termini che vanno a 0) → <strong>${leadPos ? '+∞' : '−∞'}</strong>.`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `Il limite per x → +∞ è ${leadPos ? '+∞' : '−∞'}. Cosa significa per gli asintoti o le discontinuità?`,
+            options: [
+              {
+                text: `Nessun asintoto orizzontale (per x → +∞ il grafico sale/scende indefinitamente verso ${leadPos ? '+∞' : '−∞'}).`,
+                correct: true,
+                feedback: 'Esatto! Per avere un asintoto orizzontale il limite per x → ±∞ dovrebbe essere un numero FINITO.'
+              },
+              {
+                text: 'Asintoto verticale.',
+                correct: false,
+                errorTag: 'Confusione asintoto verticale con x → ∞',
+                feedback: 'Attenzione! L\'asintoto verticale si ha quando x → x₀ (numero finito) e f(x) → ±∞. Qui è la x che va a +∞!'
+              },
+              {
+                text: 'Discontinuità di 2ª specie.',
+                correct: false,
+                errorTag: 'Confusione discontinuità con comportamento all\'infinito',
+                feedback: 'Le discontinuità si classificano solo in punti finiti x₀, mai a ±∞!'
+              },
+              {
+                text: `Asintoto orizzontale di equazione y = ${a}.`,
+                correct: false,
+                errorTag: 'Asintoto orizzontale con limite infinito',
+                feedback: 'Non c\'è nessun asintoto orizzontale perché il limite è infinito, non finito!'
+              }
+            ],
+            theory: 'Se <span class="font-semibold">lim (x → ±∞) f(x) = ±∞</span>, la funzione <strong>non ha asintoto orizzontale</strong> da quel lato.'
+          }
+        ]
+      };
+    }
+
+    // --- 3. Razionale Fratta per x -> ±∞: F.I. ∞/∞ con stesso grado (Asintoto Orizzontale y = L) ---
+    function genFracInfSameDeg() {
+      const k = pick([-3, -2, 2, 3, 4]);
+      const d = pick([1, 2, 3]);
+      const a = k * d; // rapporto pulito = k
+      const b = pick([-5, -2, 1, 3, 4]);
+      const c = pick([-3, 1, 2, 5]);
+      const e = pick([-4, -1, 2, 3]);
+      const f = pick([-2, 1, 4]);
+      const dir = pick(['+\\infty', '-\\infty']);
+
+      const numTex = formatQuad(a, b, c);
+      const denTex = formatQuad(d, e, f);
+
+      return {
+        id: `frac_same_${numTex}_${denTex}_${dir}`,
+        category: 'razionale_fratta_inf',
+        categoryLabel: 'Razionale Fratta • F.I. (∞/∞) Stesso Grado',
+        tex: `\\lim_{x \\to ${dir}} \\frac{${numTex}}{${denTex}}`,
+        plainText: `lim (x->${dir === '+\\infty' ? '+inf' : '-inf'}) (${numTex})/(${denTex})`,
+        resultTex: `${k}`,
+        interpretationShort: `Asintoto Orizzontale y = ${k}`,
+        graph: { type: 'horiz_asymptote', L: k, side: dir === '+\\infty' ? 'right' : 'left' },
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: `Valutando numeratore e denominatore per x → ${dir === '+\\infty' ? '+∞' : '−∞'}, che forma ottieni?`,
+            options: [
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{\\infty}{\\infty}\\right]`,
+                correct: true,
+                feedback: 'Esatto! Sia il numeratore che il denominatore sono polinomi di 2° grado che tendono all\'infinito.'
+              },
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{0}{0}\\right]`,
+                correct: false,
+                errorTag: 'Confusione ∞/∞ con 0/0',
+                feedback: 'I polinomi per x → ±∞ tendono all\'infinito, non a 0!'
+              },
+              {
+                tex: `\\text{Fa subito } 1 \\text{ perché } \\frac{\\infty}{\\infty} = 1`,
+                correct: false,
+                errorTag: 'Errore grave: ∞/∞ = 1',
+                feedback: 'Attenzione! ∞/∞ è una forma di indecisione: non fa automaticamente 1!'
+              },
+              {
+                tex: `\\text{Calcolo diretto: } \\frac{${c}}{${f}}`,
+                correct: false,
+                errorTag: 'Sostituito 0 invece di ∞',
+                feedback: 'Quello sarebbe il limite per x → 0! Qui x tende a ±∞.'
+              }
+            ],
+            theory: 'Una frazione algebrica per <span class="font-semibold">x → ±∞</span> genera sempre la forma di indecisione <strong>∞/∞</strong>.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: 'Qual è la strategia corretta per risolvere la F.I. ∞/∞ in questa funzione razionale fratta?',
+            options: [
+              {
+                text: 'Raccogliere x² (grado massimo) a numeratore e denominatore: avendo lo stesso grado, il limite è il rapporto dei coefficienti direttori.',
+                correct: true,
+                feedback: 'Perfetto! Semplificando x²/x², tutti i termini di grado inferiore vanno a 0 e resta il rapporto dei coefficienti di x².'
+              },
+              {
+                text: 'Scomporre numeratore e denominatore con il delta.',
+                correct: false,
+                errorTag: 'Strategia di 0/0 usata su ∞/∞',
+                feedback: 'La scomposizione serve per 0/0 (quando x → x₀). Per ∞/∞ si confrontano i gradi massimi!'
+              },
+              {
+                text: 'Il risultato è sempre 0 perché è una frazione.',
+                correct: false,
+                errorTag: 'Regola grado N < grado D applicata a grado uguale',
+                feedback: 'Fa 0 solo se il grado del denominatore è MAGGIORE di quello del numeratore. Qui i gradi sono uguali (2 e 2)!'
+              },
+              {
+                text: 'Il risultato è sempre ±∞ perché x → ±∞.',
+                correct: false,
+                errorTag: 'Regola grado N > grado D applicata a grado uguale',
+                feedback: 'Fa ±∞ solo se il numeratore ha grado maggiore del denominatore.'
+              }
+            ],
+            theory: 'Nella F.I. <strong>∞/∞</strong> con <strong>grado N = grado D</strong>, il limite è sempre finito e uguale al rapporto tra i coefficienti di grado massimo.'
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: `Qual è il valore esatto del limite (rapporto tra ${a} e ${d})?`,
+            options: [
+              {
+                tex: `${k}`,
+                correct: true,
+                feedback: `Bravissimo! ${a} / ${d} = ${k}.`
+              },
+              {
+                tex: `0`,
+                correct: false,
+                errorTag: 'Confusione caso gradi uguali con grado N < grado D',
+                feedback: 'I gradi sono uguali (entrambi 2° grado), quindi il limite non è 0 ma il rapporto dei coefficienti direttori.'
+              },
+              {
+                tex: `${-k}`,
+                correct: false,
+                errorTag: 'Errore di segno nel rapporto dei coefficienti',
+                feedback: `Controlla il segno di ${a}/${d}: vale ${k} (anche per x → −∞, x²/x² si semplifica in +1!).`
+              },
+              {
+                tex: `${dir}`,
+                correct: false,
+                errorTag: 'Risultato infinito per gradi uguali',
+                feedback: 'Con gradi uguali le potenze x² si semplificano del tutto, lasciando un numero finito!'
+              }
+            ],
+            theory: `Semplificando x² rimane <span class="font-semibold">${a}/${d} = ${k}</span>.`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `Abbiamo trovato lim (x → ${dir === '+\\infty' ? '+∞' : '−∞'}) f(x) = ${k}. Cosa rappresenta graficamente?`,
+            options: [
+              {
+                text: `Un Asintoto Orizzontale di equazione y = ${k}.`,
+                correct: true,
+                feedback: `Perfetto! Un limite finito L per x → ±∞ corrisponde sempre all'asintoto orizzontale y = L.`
+              },
+              {
+                text: `Un Asintoto Verticale di equazione x = ${k}.`,
+                correct: false,
+                errorTag: 'Scambiato asintoto orizzontale con verticale',
+                feedback: 'Attenzione! L\'asintoto orizzontale ha equazione y = costante (e nasce da x → ±∞). L\'asintoto verticale è x = costante (e nasce da f(x) → ±∞)!'
+              },
+              {
+                text: `Una discontinuità di 3ª specie in x = ${k}.`,
+                correct: false,
+                errorTag: 'Confusione asintoto orizzontale con discontinuità',
+                feedback: 'Qui stiamo guardando x → ±∞, non un punto finito x₀: si parla di asintoto orizzontale, non di discontinuità!'
+              },
+              {
+                text: 'Nessun asintoto.',
+                correct: false,
+                errorTag: 'Asintoto orizzontale non riconosciuto',
+                feedback: `Quando x → ±∞ e il limite è un numero finito (${k}), c'è SEMPRE un asintoto orizzontale!`
+              }
+            ],
+            theory: `Poiché <span class="font-semibold">lim (x → ${dir === '+\\infty' ? '+∞' : '−∞'}) f(x) = ${k}</span>, la retta <strong>y = ${k}</strong> è un <strong>asintoto orizzontale</strong>.`
+          }
+        ]
+      };
+    }
+
+    // --- 4. Razionale Fratta per x -> ±∞: F.I. ∞/∞ con grado N < grado D (A.O. y = 0) ---
+    function genFracInfDegLess() {
+      const a = pick([2, 3, 4, -2, -3]);
+      const b = pick([-5, -1, 2, 3]);
+      const c = pick([1, 2, 3]);
+      const d = pick([-4, 1, 3, 5]);
+      const dir = pick(['+\\infty', '-\\infty']);
+
+      const numTex = formatLinear(a, b);
+      const denTex = formatQuad(c, 0, d);
+
+      return {
+        id: `frac_less_${numTex}_${denTex}_${dir}`,
+        category: 'razionale_fratta_inf',
+        categoryLabel: 'Razionale Fratta • F.I. (∞/∞) Grado N < Grado D',
+        tex: `\\lim_{x \\to ${dir}} \\frac{${numTex}}{${denTex}}`,
+        plainText: `lim (x->${dir === '+\\infty' ? '+inf' : '-inf'}) (${numTex})/(${denTex})`,
+        resultTex: `0`,
+        interpretationShort: `Asintoto Orizzontale y = 0 (asse x)`,
+        graph: { type: 'horiz_asymptote', L: 0, side: dir === '+\\infty' ? 'right' : 'left' },
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: `Sostituendo x → ${dir === '+\\infty' ? '+∞' : '−∞'}, che forma ottieni?`,
+            options: [
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{\\infty}{\\infty}\\right]`,
+                correct: true,
+                feedback: 'Esatto! Numeratore e denominatore tendono entrambi all\'infinito.'
+              },
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{0}{0}\\right]`,
+                correct: false,
+                errorTag: 'Confusione ∞/∞ con 0/0',
+                feedback: 'Per x → ±∞ i polinomi vanno all\'infinito, non a 0.'
+              },
+              {
+                tex: `\\text{Forma di indecisione } [+\\infty - \\infty]`,
+                correct: false,
+                errorTag: 'Confusione ∞/∞ con ∞ − ∞',
+                feedback: 'Qui abbiamo il rapporto (divisione) di due polinomi: è ∞/∞.'
+              },
+              {
+                tex: `\\text{Calcolo diretto: } \\frac{${b}}{${d}}`,
+                correct: false,
+                errorTag: 'Sostituito 0 invece di ∞',
+                feedback: 'Quello sarebbe il valore per x = 0, ma x tende all\'infinito!'
+              }
+            ],
+            theory: 'Per <span class="font-semibold">x → ±∞</span> una frazione di polinomi dà sempre <strong>∞/∞</strong>.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: 'Confronta il grado del numeratore (1) con il grado del denominatore (2). Come risolvi?',
+            options: [
+              {
+                text: 'Il denominatore ha grado MAGGIORE (2 > 1): raccogliendo i termini massimi resta 1/x che tende a 0.',
+                correct: true,
+                feedback: 'Perfetto! Il denominatore cresce molto più velocemente del numeratore e "schiaccia" la frazione a 0.'
+              },
+              {
+                text: 'Faccio il rapporto dei coefficienti direttori.',
+                correct: false,
+                errorTag: 'Rapporto coefficienti con gradi diversi',
+                feedback: 'Il rapporto dei coefficienti vale SOLO quando i gradi di numeratore e denominatore sono UGUALI!'
+              },
+              {
+                text: 'Siccome c\'è x², il risultato è sicuramente +∞.',
+                correct: false,
+                errorTag: 'Dimenticato che x² è al denominatore',
+                feedback: 'Attenzione: x² è al DENOMINATORE! Dividere per un infinito più grande fa tendere il quoziente a 0.'
+              },
+              {
+                text: 'Scompongo il denominatore e semplifico.',
+                correct: false,
+                errorTag: 'Strategia 0/0 usata su ∞/∞',
+                feedback: 'Non serve scomporre: basta confrontare i gradi massimi!'
+              }
+            ],
+            theory: 'Nella F.I. <strong>∞/∞</strong>, se <strong>grado N &lt; grado D</strong>, il limite vale sempre <strong>0</strong>.'
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: 'Qual è quindi il risultato del limite?',
+            options: [
+              {
+                tex: `0`,
+                correct: true,
+                feedback: 'Esatto! Raccogliendo si ottiene (a/c)·(1/x) → 0.'
+              },
+              {
+                tex: `\\frac{${a}}{${c}}`,
+                correct: false,
+                errorTag: 'Applicata regola gradi uguali',
+                feedback: 'I gradi non sono uguali (1 vs 2), quindi resta un fattore 1/x che porta tutto a 0!'
+              },
+              {
+                tex: `+\\infty`,
+                correct: false,
+                errorTag: 'Confusione grado N < D con grado N > D',
+                feedback: 'Poiché vince il denominatore (grado 2 > 1), la frazione tende a 0, non a +∞.'
+              },
+              {
+                tex: `-\\infty`,
+                correct: false,
+                errorTag: 'Confusione grado N < D con grado N > D',
+                feedback: 'Vince il denominatore, quindi il limite è 0.'
+              }
+            ],
+            theory: `In ogni razionale fratta con <span class="font-semibold">grado N &lt; grado D</span>, il limite all'infinito è sempre <strong>0</strong>.`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `Il limite per x → ${dir === '+\\infty' ? '+∞' : '−∞'} vale 0. Cosa indica sul grafico?`,
+            options: [
+              {
+                text: 'Un Asintoto Orizzontale di equazione y = 0 (cioè l\'asse delle ascisse x).',
+                correct: true,
+                feedback: 'Bravissimo! Anche 0 è un numero reale finito, quindi y = 0 è a tutti gli effetti un asintoto orizzontale!'
+              },
+              {
+                text: 'Nessun asintoto, perché il risultato è zero.',
+                correct: false,
+                errorTag: 'Creduto che y = 0 non sia un asintoto',
+                feedback: 'Errore molto comune! 0 è un numero finito: la curva si avvicina sempre di più all\'asse x (retta y = 0), che è un asintoto orizzontale!'
+              },
+              {
+                text: 'Un Asintoto Verticale di equazione x = 0.',
+                correct: false,
+                errorTag: 'Scambiato asintoto orizzontale con verticale',
+                feedback: 'Attenzione: x = 0 è l\'asse y (verticale). Qui x → ±∞ e y → 0, quindi l\'asintoto è orizzontale: y = 0!'
+              },
+              {
+                text: 'Una discontinuità eliminabile nell\'origine.',
+                correct: false,
+                errorTag: 'Confusione limite all\'infinito con discontinuità',
+                feedback: 'Per x → ±∞ si cercano gli asintoti orizzontali, non le discontinuità!'
+              }
+            ],
+            theory: 'Ricorda: <strong>y = 0</strong> (l\'asse x) è un normalissimo <strong>asintoto orizzontale</strong>!'
+          }
+        ]
+      };
+    }
+
+    // --- 5. Razionale Fratta per x -> ±∞: F.I. ∞/∞ con grado N > grado D (Nessun A.O.) ---
+    function genFracInfDegMore() {
+      const a = pick([2, 3, -2, -3]);
+      const b = pick([-4, -1, 2, 5]);
+      const c = pick([1, 2]);
+      const d = pick([-3, 1, 4]);
+      const dir = pick(['+\\infty', '-\\infty']);
+
+      const numTex = formatQuad(a, 0, b);
+      const denTex = formatLinear(c, d);
+
+      // Segno di (a/c) * x per x -> dir
+      const ratioSign = (a / c) > 0 ? 1 : -1;
+      const dirSign = dir === '+\\infty' ? 1 : -1;
+      const finalSign = ratioSign * dirSign;
+      const resTex = finalSign > 0 ? '+\\infty' : '-\\infty';
+      const wrongInf = finalSign > 0 ? '-\\infty' : '+\\infty';
+
+      return {
+        id: `frac_more_${numTex}_${denTex}_${dir}`,
+        category: 'razionale_fratta_inf',
+        categoryLabel: 'Razionale Fratta • F.I. (∞/∞) Grado N > Grado D',
+        tex: `\\lim_{x \\to ${dir}} \\frac{${numTex}}{${denTex}}`,
+        plainText: `lim (x->${dir === '+\\infty' ? '+inf' : '-inf'}) (${numTex})/(${denTex})`,
+        resultTex: resTex,
+        interpretationShort: `Nessun asintoto orizzontale (possibile asintoto obliquo)`,
+        graph: { type: 'diverge_inf', side: dir === '+\\infty' ? 'right' : 'left', sign: finalSign },
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: `Sostituendo x → ${dir === '+\\infty' ? '+∞' : '−∞'}, che forma ottieni?`,
+            options: [
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{\\infty}{\\infty}\\right]`,
+                correct: true,
+                feedback: 'Esatto! Numeratore e denominatore tendono entrambi all\'infinito.'
+              },
+              {
+                tex: `\\text{Forma di indecisione } [+\\infty - \\infty]`,
+                correct: false,
+                errorTag: 'Confusione ∞/∞ con ∞ − ∞',
+                feedback: 'È una frazione tra due polinomi che vanno all\'infinito: la forma è ∞/∞.'
+              },
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{0}{0}\\right]`,
+                correct: false,
+                errorTag: 'Confusione ∞/∞ con 0/0',
+                feedback: 'Per x → ±∞ i polinomi non tendono a 0.'
+              },
+              {
+                tex: `\\text{Risultato immediato } 0`,
+                correct: false,
+                errorTag: 'Forma di indecisione non riconosciuta',
+                feedback: 'Non è immediato: prima bisogna confrontare i gradi massimi!'
+              }
+            ],
+            theory: 'Per <span class="font-semibold">x → ±∞</span> una frazione algebrica dà sempre la F.I. <strong>∞/∞</strong>.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: 'Il numeratore ha grado 2 e il denominatore ha grado 1. Come si risolve?',
+            options: [
+              {
+                text: `Vince il numeratore (grado 2 > 1): raccogliendo resta (${a}/${c})·x, quindi il limite è ±∞ (da determinare col segno!).`,
+                correct: true,
+                feedback: 'Perfetto! Quando grado N > grado D il limite è sempre infinito, ma bisogna fare molta attenzione al segno!'
+              },
+              {
+                text: 'Il limite vale 0 perché c\'è la x al denominatore.',
+                correct: false,
+                errorTag: 'Confusione grado N > D con grado N < D',
+                feedback: 'No! Il numeratore ha grado MAGGIORE (x² batte x), quindi la frazione diverge all\'infinito.'
+              },
+              {
+                text: `Il limite è finito e vale ${a}/${c}.`,
+                correct: false,
+                errorTag: 'Applicata regola gradi uguali',
+                feedback: 'Sarebbe il rapporto dei coefficienti solo se i gradi fossero uguali. Qui avanza una x al numeratore!'
+              },
+              {
+                text: 'Scompongo il numeratore e semplifico.',
+                correct: false,
+                errorTag: 'Strategia 0/0 usata su ∞/∞',
+                feedback: 'La scomposizione serve per la forma 0/0, non per ∞/∞.'
+              }
+            ],
+            theory: 'Nella F.I. <strong>∞/∞</strong> con <strong>grado N &gt; grado D</strong>, il limite è sempre <strong>±∞</strong>; il segno dipende dal rapporto dei termini di grado massimo.'
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: `Calcola il segno di (${a}/${c})·x quando x → ${dir === '+\\infty' ? '+∞' : '−∞'}. Qual è il risultato?`,
+            options: [
+              {
+                tex: resTex,
+                correct: true,
+                feedback: `Bravissimo! Il coefficiente ${a}/${c} è ${ratioSign > 0 ? 'positivo' : 'negativo'} e x → ${dir === '+\\infty' ? '+∞' : '−∞'}, quindi per la regola dei segni fa ${finalSign > 0 ? '+∞' : '−∞'}.`
+              },
+              {
+                tex: wrongInf,
+                correct: false,
+                errorTag: 'Errore di segno nel limite a ±∞',
+                feedback: `Attenzione alla regola dei segni! Qui abbiamo (${ratioSign > 0 ? '+' : '−'}) · (${dirSign > 0 ? '+∞' : '−∞'}) = ${finalSign > 0 ? '+∞' : '−∞'}.`
+              },
+              {
+                tex: `0`,
+                correct: false,
+                errorTag: 'Risultato 0 con grado N > D',
+                feedback: 'Con grado N > grado D il limite è infinito, non 0!'
+              },
+              {
+                tex: `\\frac{${a}}{${c}}`,
+                correct: false,
+                errorTag: 'Dimenticata la x residua',
+                feedback: 'Dopo aver semplificato x²/x rimane una x al numeratore, che porta il risultato a infinito!'
+              }
+            ],
+            theory: `Controlla sempre sia il segno dei coefficienti direttori sia il segno di <span class="font-semibold">${dir === '+\\infty' ? '+∞' : '−∞'}</span>!`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `Il limite per x → ${dir === '+\\infty' ? '+∞' : '−∞'} è ${finalSign > 0 ? '+∞' : '−∞'}. Cosa puoi concludere sugli asintoti?`,
+            options: [
+              {
+                text: 'Nessun asintoto orizzontale (poiché grado N = grado D + 1, si può eventualmente cercare un asintoto obliquo).',
+                correct: true,
+                feedback: 'Eccellente! Non c\'è asintoto orizzontale; inoltre, essendo la differenza dei gradi pari a 1, la funzione ammette asintoto obliquo.'
+              },
+              {
+                text: 'Asintoto verticale.',
+                correct: false,
+                errorTag: 'Confusione asintoto verticale con x → ±∞',
+                feedback: 'L\'asintoto verticale si ha solo per x → x₀ finito!'
+              },
+              {
+                text: `Asintoto orizzontale y = ${a}/${c}.`,
+                correct: false,
+                errorTag: 'Asintoto orizzontale con limite infinito',
+                feedback: 'Il limite è infinito, quindi NON esiste alcun asintoto orizzontale!'
+              },
+              {
+                text: 'Discontinuità di 2ª specie.',
+                correct: false,
+                errorTag: 'Discontinuità attribuita all\'infinito',
+                feedback: 'Le discontinuità riguardano solo punti finiti x₀.'
+              }
+            ],
+            theory: 'Se <span class="font-semibold">lim (x → ±∞) f(x) = ±∞</span> non c\'è asintoto orizzontale. Nelle fratte con <strong>grado N = grado D + 1</strong> esiste un <strong>asintoto obliquo</strong>.'
+          }
+        ]
+      };
+    }
+
+    // --- 6. Razionale Fratta per x -> x0±: Caso k/0± (Asintoto Verticale / Discontinuità 2ª specie) ---
+    function genFracVerticalAsymptote() {
+      const r = pick([-3, -2, -1, 1, 2, 3, 4]);
+      const side = pick(['+', '-']); // r+ o r-
+      const p = pick([1, 2, -1, -2]);
+      let q = pick([-4, -2, 1, 3, 5]);
+      if (p * r + q === 0) q += 2; // garantiamo numeratore != 0 in r
+
+      const numVal = p * r + q;
+      const numTex = formatLinear(p, q);
+      const denTex = formatLinear(1, -r);
+
+      const zeroSign = side === '+' ? 1 : -1;
+      const finalSign = (numVal > 0 ? 1 : -1) * zeroSign;
+      const resTex = finalSign > 0 ? '+\\infty' : '-\\infty';
+      const wrongInf = finalSign > 0 ? '-\\infty' : '+\\infty';
+
+      return {
+        id: `frac_va_${numTex}_${denTex}_${side}`,
+        category: 'razionale_fratta_x0',
+        categoryLabel: 'Razionale Fratta • Caso k/0± (Asintoto Verticale)',
+        tex: `\\lim_{x \\to ${r}^{${side}}} \\frac{${numTex}}{${denTex}}`,
+        plainText: `lim (x->${r}${side}) (${numTex})/(${denTex})`,
+        resultTex: resTex,
+        interpretationShort: `Asintoto Verticale x = ${r} • Discontinuità di 2ª specie`,
+        graph: { type: 'vert_asymptote', x0: r, side: side === '+' ? 'right' : 'left', sign: finalSign },
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: `Sostituendo x = ${r}${side} nella frazione, che forma ottieni?`,
+            options: [
+              {
+                tex: `\\frac{${numVal}}{0^{${side}}} \\;\\text{(NON è una forma di indecisione)}`,
+                correct: true,
+                feedback: `Esatto! Il numeratore tende al numero non nullo ${numVal}, mentre il denominatore tende a 0${side}. È un caso immediato dell'algebra degli infiniti!`
+              },
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{0}{0}\\right]`,
+                correct: false,
+                errorTag: 'Confusione k/0 con 0/0',
+                feedback: `Controlla il numeratore! Sostituendo x = ${r} ottieni ${numVal}, che NON è zero! Quindi non è 0/0.`
+              },
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{\\infty}{\\infty}\\right]`,
+                correct: false,
+                errorTag: 'Confusione k/0 con ∞/∞',
+                feedback: `Qui x tende al numero finito ${r}, non all'infinito.`
+              },
+              {
+                tex: `\\text{Il limite non esiste perché non si può dividere per } 0`,
+                correct: false,
+                errorTag: 'Confusione tra f(x₀) non definita e limite',
+                feedback: `Attenzione! f(${r}) non esiste (è fuori dal dominio), ma il LIMITE per x → ${r}${side} esiste eccome e vale ±∞!`
+              }
+            ],
+            theory: 'Una frazione del tipo <strong>k / 0±</strong> (con k ≠ 0) <strong>NON è una forma di indecisione</strong>: il risultato è sempre <strong>±∞</strong>.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: 'Come determini se il risultato è +∞ oppure −∞?',
+            options: [
+              {
+                text: `Studio il segno del numeratore (${numVal > 0 ? 'positivo' : 'negativo'}) e del denominatore per x → ${r}${side} (${side === '+' ? 'poco più grande' : 'poco più piccolo'} di ${r} ⇒ 0${side}), poi applico la regola dei segni.`,
+                correct: true,
+                feedback: 'Perfetto! È proprio così che si determina il segno dell\'infinito.'
+              },
+              {
+                text: 'Scompongo e semplifico il denominatore.',
+                correct: false,
+                errorTag: 'Tentata semplificazione in k/0',
+                feedback: `Non puoi semplificare (${denTex}) perché il numeratore non si annulla in ${r}!`
+              },
+              {
+                text: 'Il risultato è sempre +∞ perché divido per zero.',
+                correct: false,
+                errorTag: 'Segno dell\'infinito ignorato',
+                feedback: 'Attenzione: il segno dell\'infinito dipende sia dal segno del numeratore che dal fatto di avvicinarsi da destra (0⁺) o da sinistra (0⁻)!'
+              },
+              {
+                text: 'Raccolgo la x di grado massimo.',
+                correct: false,
+                errorTag: 'Raccoglimento grado massimo usato per x → x₀',
+                feedback: 'Il raccoglimento del grado massimo serve solo per x → ±∞!'
+              }
+            ],
+            theory: `Per x → ${r}${side}, un valore ${side === '+' ? `leggermente maggiore di ${r} (es. ${r + 0.1})` : `leggermente minore di ${r} (es. ${r - 0.1})`} rende (${denTex}) uguale a <strong>0${side}</strong>.`
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: `Applicando la regola dei segni a (${numVal}) / 0${side}, quanto vale il limite?`,
+            options: [
+              {
+                tex: resTex,
+                correct: true,
+                feedback: `Esatto! Numeratore ${numVal > 0 ? 'positivo (+)' : 'negativo (−)'} diviso denominatore 0${side} (${side}) dà ${finalSign > 0 ? '+∞' : '−∞'}.`
+              },
+              {
+                tex: wrongInf,
+                correct: false,
+                errorTag: 'Errore nella regola dei segni k/0±',
+                feedback: `Ricontrolla i segni: ${numVal > 0 ? '(+)' : '(−)'} / (${side}) = ${finalSign > 0 ? '+' : '−'}, quindi ${finalSign > 0 ? '+∞' : '−∞'}!`
+              },
+              {
+                tex: `0`,
+                correct: false,
+                errorTag: 'Confusione k/0 con 0/k',
+                feedback: '0 diviso un numero fa 0, ma un numero diverso da 0 diviso 0± fa ±∞!'
+              },
+              {
+                tex: `${numVal}`,
+                correct: false,
+                errorTag: 'Ignorato il denominatore',
+                feedback: 'Non puoi ignorare il denominatore che tende a 0: la frazione esplode all\'infinito!'
+              }
+            ],
+            theory: `La regola dei segni su <strong>${numVal} / 0${side}</strong> dà <strong>${finalSign > 0 ? '+∞' : '−∞'}</strong>.`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `Cosa comporta il risultato lim (x → ${r}${side}) f(x) = ${finalSign > 0 ? '+∞' : '−∞'} in termini di asintoti e discontinuità?`,
+            options: [
+              {
+                text: `Asintoto Verticale di equazione x = ${r} e punto di discontinuità di 2ª specie in x = ${r}.`,
+                correct: true,
+                feedback: `Perfetto! Un limite infinito per x → x₀ comporta sia l'asintoto verticale x = ${r} sia una discontinuità di 2ª specie.`
+              },
+              {
+                text: `Asintoto Orizzontale di equazione y = ${r}.`,
+                correct: false,
+                errorTag: 'Confusione asintoto verticale con orizzontale',
+                feedback: `Qui x tende al numero finito ${r} e la y va all'infinito: l'asintoto è VERTICALE (x = ${r}), non orizzontale!`
+              },
+              {
+                text: `Discontinuità di 3ª specie (eliminabile) in x = ${r}.`,
+                correct: false,
+                errorTag: 'Confusione 2ª specie con 3ª specie',
+                feedback: 'La 3ª specie (eliminabile) si ha solo se il limite è FINITO! Con limite infinito è sempre 2ª specie.'
+              },
+              {
+                text: `Discontinuità di 1ª specie (di salto) in x = ${r}.`,
+                correct: false,
+                errorTag: 'Confusione 2ª specie con 1ª specie',
+                feedback: 'Nella 1ª specie (salto) i limiti destro e sinistro sono entrambi FINITI ma diversi. Qui il limite è infinito (2ª specie)!'
+              }
+            ],
+            theory: `Ogni volta che almeno un limite per <span class="font-semibold">x → x₀</span> è <strong>±∞</strong>, abbiamo un <strong>Asintoto Verticale x = x₀</strong> e una <strong>discontinuità di 2ª specie</strong>.`
+          }
+        ]
+      };
+    }
+
+    // --- 7. Razionale Fratta per x -> x0: F.I. 0/0 (Discontinuità di 3ª specie / eliminabile) ---
+    function genFracZeroOverZero() {
+      const useDiffSq = Math.random() < 0.5;
+      let r, s, numTex, denTex, factoredNum, res;
+
+      if (useDiffSq) {
+        r = pick([2, 3, 4, 5]);
+        numTex = `x^2 - ${r * r}`;
+        denTex = `x - ${r}`;
+        factoredNum = `(x - ${r})(x + ${r})`;
+        res = 2 * r;
+      } else {
+        r = pick([-3, -2, 1, 2, 3]);
+        s = pick([-4, -1, 1, 2, 4]);
+        if (s === r) s = r + 2;
+        const b = -(r + s);
+        const c = r * s;
+        numTex = formatQuad(1, b, c);
+        denTex = formatLinear(1, -r);
+        const fac1 = formatLinear(1, -r);
+        const fac2 = formatLinear(1, -s);
+        factoredNum = `(${fac1})(${fac2})`;
+        res = r - s;
+      }
+
+      const wrong1 = res === 0 ? 2 : 0;
+      const wrong2 = -res === res ? res + 3 : -res;
+
+      return {
+        id: `frac_00_${numTex}_${denTex}_${r}`,
+        category: 'razionale_fratta_x0',
+        categoryLabel: 'Razionale Fratta • F.I. (0/0)',
+        tex: `\\lim_{x \\to ${r}} \\frac{${numTex}}{${denTex}}`,
+        plainText: `lim (x->${r}) (${numTex})/(${denTex})`,
+        resultTex: `${res}`,
+        interpretationShort: `Nessun asintoto verticale • Discontinuità di 3ª specie (eliminabile) in x = ${r}`,
+        graph: { type: 'removable_hole', x0: r, L: res },
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: `Sostituendo x = ${r} a numeratore e denominatore, cosa ottieni?`,
+            options: [
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{0}{0}\\right]`,
+                correct: true,
+                feedback: `Esatto! Per x = ${r} si annullano contemporaneamente sia il numeratore che il denominatore.`
+              },
+              {
+                tex: `\\text{Forma } \\frac{k}{0} = \\pm\\infty`,
+                correct: false,
+                errorTag: 'Confusione 0/0 con k/0',
+                feedback: `Controlla bene il numeratore per x = ${r}: anche il numeratore fa 0! Quindi è la F.I. 0/0, non k/0.`
+              },
+              {
+                tex: `\\text{Fa subito } 0 \\text{ perché il numeratore è } 0`,
+                correct: false,
+                errorTag: 'Errore grave: 0/0 = 0',
+                feedback: 'Attenzione! 0/0 è una forma di indecisione: non fa automaticamente 0 né automaticamente 1!'
+              },
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{\\infty}{\\infty}\\right]`,
+                correct: false,
+                errorTag: 'Confusione 0/0 con ∞/∞',
+                feedback: `Qui x tende al numero finito ${r}, non all'infinito!`
+              }
+            ],
+            theory: 'Quando per <span class="font-semibold">x → x₀</span> si annullano sia numeratore sia denominatore, si ottiene la forma di indecisione <strong>0/0</strong>.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: 'Come si scioglie la forma di indecisione 0/0 in una funzione razionale fratta?',
+            options: [
+              {
+                text: `Scompongo il numeratore in ${factoredNum}, semplifico il fattore (${denTex}) e sostituisco di nuovo x = ${r}.`,
+                correct: true,
+                feedback: `Perfetto! Semplificare (${denTex}) elimina la causa dello 0/0.`
+              },
+              {
+                text: 'Raccolgo la x di grado massimo a numeratore e denominatore.',
+                correct: false,
+                errorTag: 'Strategia di ∞/∞ usata su 0/0',
+                feedback: 'Il raccoglimento del grado massimo si usa per x → ±∞ (forma ∞/∞), non per 0/0!'
+              },
+              {
+                text: 'Studio il segno di 0⁺ e 0⁻ al denominatore.',
+                correct: false,
+                errorTag: 'Strategia k/0 usata su 0/0',
+                feedback: 'Lo studio di 0± serve solo quando il numeratore è diverso da 0 (k/0). Con 0/0 bisogna prima scomporre e semplificare!'
+              },
+              {
+                text: 'Concludo che il limite vale 1 perché 0/0 = 1.',
+                correct: false,
+                errorTag: 'Errore grave: 0/0 = 1',
+                feedback: '0/0 è una forma di indecisione, non fa 1!'
+              }
+            ],
+            theory: 'Il teorema di Ruffini garantisce che se un polinomio si annulla in <span class="font-semibold">x₀</span>, è sempre divisibile per <strong>(x − x₀)</strong>.'
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: `Dopo aver semplificato (${denTex}), sostituisci x = ${r} nell'espressione rimasta. Quanto fa?`,
+            options: [
+              {
+                tex: `${res}`,
+                correct: true,
+                feedback: `Bravissimo! Semplificando (${denTex}) e sostituendo x = ${r} si ottiene esattamente ${res}.`
+              },
+              {
+                tex: `${wrong1}`,
+                correct: false,
+                errorTag: 'Errore di sostituzione dopo semplificazione',
+                feedback: `Dopo la semplificazione resta un'espressione lineare in x: sostituisci attentamente x = ${r}!`
+              },
+              {
+                tex: `${wrong2}`,
+                correct: false,
+                errorTag: 'Errore di segno dopo semplificazione',
+                feedback: `Controlla bene i segni nella scomposizione ${factoredNum} e nella sostituzione x = ${r}.`
+              },
+              {
+                tex: `+\\infty`,
+                correct: false,
+                errorTag: 'Risultato infinito dopo semplificazione completa',
+                feedback: 'Dopo la semplificazione il denominatore è sparito: il risultato è un numero finito!'
+              }
+            ],
+            theory: `Una volta semplificato il fattore (${denTex}), la sostituzione diretta dà il valore finito <strong>${res}</strong>.`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `In x = ${r} la funzione NON è definita (${denTex} = 0), ma il limite è finito e vale ${res}. Cosa c'è sul grafico?`,
+            options: [
+              {
+                text: `Nessun asintoto verticale: in x = ${r} c'è una discontinuità di 3ª specie (eliminabile), cioè un "buco" nel punto (${r}, ${res}).`,
+                correct: true,
+                feedback: `Eccellente! Anche se x = ${r} annulla il denominatore, il limite è finito: quindi NON c'è asintoto verticale, ma una discontinuità di 3ª specie (eliminabile)!`
+              },
+              {
+                text: `Asintoto verticale x = ${r} e discontinuità di 2ª specie.`,
+                correct: false,
+                errorTag: 'Creduto che ogni zero del denominatore sia un A.V.',
+                feedback: `Errore classico! Non tutti i punti esclusi dal dominio sono asintoti verticali: qui il limite è FINITO (${res}), quindi c'è un "buco" (3ª specie), non un asintoto!`
+              },
+              {
+                text: `Asintoto orizzontale y = ${res}.`,
+                correct: false,
+                errorTag: 'Confusione 3ª specie con asintoto orizzontale',
+                feedback: `L'asintoto orizzontale si cerca solo per x → ±∞, mentre qui x → ${r}!`
+              },
+              {
+                text: `Funzione continua in x = ${r}.`,
+                correct: false,
+                errorTag: 'Dimenticato che x₀ è escluso dal dominio',
+                feedback: `Attenzione: x = ${r} annulla il denominatore originale, quindi NON appartiene al dominio! La funzione non è continua in ${r}, ha una discontinuità eliminabile.`
+              }
+            ],
+            theory: `Quando <span class="font-semibold">x₀ ∉ D(f)</span> ma <span class="font-semibold">lim (x → x₀) f(x) = L</span> finito, si ha sempre una <strong>discontinuità di 3ª specie (eliminabile)</strong> e <strong>nessun asintoto verticale</strong>.`
+          }
+        ]
+      };
+    }
+
+    // --- 8. Funzione Esponenziale (esponente polinomiale, base > 1 o 0 < a < 1) ---
+    function genExpPoly() {
+      const variant = pick(['e_neg', 'half_pos', 'two_pos', 'e_shift']);
+      let tex, plain, dirLabel, baseNote, resTex, wrongRes1, wrongRes2, isFiniteRes, horizVal, graphCfg;
+
+      if (variant === 'e_neg') {
+        const k = pick([0, 1, 2, -1, 3]);
+        const shiftStr = k === 0 ? '' : (k > 0 ? ` + ${k}` : ` - ${Math.abs(k)}`);
+        tex = `\\lim_{x \\to -\\infty} \\left(e^x${shiftStr}\\right)`;
+        plain = `lim (x->-inf) (e^x${shiftStr})`;
+        dirLabel = '−∞';
+        baseNote = 'la base e ≈ 2,718 è maggiore di 1, quindi e⁻∞ = 0⁺';
+        resTex = `${k}`;
+        wrongRes1 = '+\\infty';
+        wrongRes2 = '-\\infty';
+        isFiniteRes = true;
+        horizVal = k;
+        graphCfg = { type: 'horiz_asymptote', L: k, side: 'left' };
+      } else if (variant === 'half_pos') {
+        const k = pick([0, 1, 2, -2]);
+        const shiftStr = k === 0 ? '' : (k > 0 ? ` + ${k}` : ` - ${Math.abs(k)}`);
+        tex = `\\lim_{x \\to +\\infty} \\left(\\left(\\frac{1}{2}\\right)^x${shiftStr}\\right)`;
+        plain = `lim (x->+inf) ((1/2)^x${shiftStr})`;
+        dirLabel = '+∞';
+        baseNote = 'la base 1/2 è compresa tra 0 e 1, quindi (1/2)⁺∞ = 0⁺';
+        resTex = `${k}`;
+        wrongRes1 = '+\\infty';
+        wrongRes2 = `${k + 1}`;
+        isFiniteRes = true;
+        horizVal = k;
+        graphCfg = { type: 'horiz_asymptote', L: k, side: 'right' };
+      } else if (variant === 'two_pos') {
+        const c = pick([-2, -1, 1, 2]);
+        const expTex = formatLinear(1, c);
+        tex = `\\lim_{x \\to +\\infty} 2^{${expTex}}`;
+        plain = `lim (x->+inf) 2^(${expTex})`;
+        dirLabel = '+∞';
+        baseNote = 'la base 2 è maggiore di 1 e l\'esponente tende a +∞, quindi 2⁺∞ = +∞';
+        resTex = '+\\infty';
+        wrongRes1 = '0';
+        wrongRes2 = '-\\infty';
+        isFiniteRes = false;
+        horizVal = null;
+        graphCfg = { type: 'diverge_inf', side: 'right', sign: 1 };
+      } else {
+        const k = pick([1, 2, 3]);
+        tex = `\\lim_{x \\to +\\infty} \\left(e^{-x} + ${k}\\right)`;
+        plain = `lim (x->+inf) (e^(-x) + ${k})`;
+        dirLabel = '+∞';
+        baseNote = 'per x → +∞ l\'esponente −x tende a −∞, quindi e⁻∞ = 0⁺';
+        resTex = `${k}`;
+        wrongRes1 = '+\\infty';
+        wrongRes2 = '0';
+        isFiniteRes = true;
+        horizVal = k;
+        graphCfg = { type: 'horiz_asymptote', L: k, side: 'right' };
+      }
+
+      return {
+        id: `exp_poly_${variant}_${tex}`,
+        category: 'esponenziale',
+        categoryLabel: 'Funzione Esponenziale • Limite all\'Infinito',
+        tex: tex,
+        plainText: plain,
+        resultTex: resTex,
+        interpretationShort: isFiniteRes
+          ? `Asintoto Orizzontale y = ${horizVal} per x → ${dirLabel}`
+          : `Nessun asintoto orizzontale per x → ${dirLabel}`,
+        graph: graphCfg,
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: `Sostituendo x → ${dirLabel} nell'esponente, che tipo di calcolo si presenta?`,
+            options: [
+              {
+                text: 'Calcolo diretto tramite le proprietà dell\'esponenziale all\'infinito (nessuna forma di indecisione).',
+                correct: true,
+                feedback: 'Esatto! Non compare alcuna forma di indecisione: basta guardare il valore della base e dove tende l\'esponente.'
+              },
+              {
+                text: 'Una forma di indecisione ∞ − ∞.',
+                correct: false,
+                errorTag: 'F.I. inesistente su esponenziale',
+                feedback: 'Qui non stiamo sottraendo due infiniti: è un calcolo diretto di esponenziale!'
+              },
+              {
+                text: 'Una forma di indecisione ∞/∞.',
+                correct: false,
+                errorTag: 'F.I. inesistente su esponenziale',
+                feedback: 'Non c\'è il rapporto di due infiniti: basta applicare la regola della base.'
+              },
+              {
+                text: 'Una forma di indecisione 0/0.',
+                correct: false,
+                errorTag: 'F.I. inesistente su esponenziale',
+                feedback: 'Non c\'è alcuna frazione che tende a 0/0.'
+              }
+            ],
+            theory: 'Per i limiti di funzioni esponenziali <span class="font-semibold">a<sup>g(x)</sup></span> bisogna sempre controllare se la base è <strong>a &gt; 1</strong> oppure <strong>0 &lt; a &lt; 1</strong>.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: 'Quale regola dell\'esponenziale devi applicare qui?',
+            options: [
+              {
+                text: `Valuto il limite dell'esponente e ricordo che ${baseNote}.`,
+                correct: true,
+                feedback: 'Perfetto! Hai individuato esattamente il comportamento corretto della base.'
+              },
+              {
+                text: 'Qualsiasi esponenziale per x → −∞ fa −∞.',
+                correct: false,
+                errorTag: 'Errore grave: esponenziale negativo',
+                feedback: 'Attenzione! Una funzione esponenziale aˣ (con a > 0) è SEMPRE positiva: non può mai tendere a −∞! Al minimo tende a 0⁺.'
+              },
+              {
+                text: 'Qualsiasi esponenziale con x → +∞ fa sempre +∞, qualunque sia la base o il segno dell\'esponente.',
+                correct: false,
+                errorTag: 'Ignorata base < 1 o esponente negativo',
+                feedback: 'Falso! Se la base è compresa tra 0 e 1 (es. 1/2) oppure se l\'esponente è −x, al crescere di x la potenza tende a 0⁺!'
+              },
+              {
+                text: 'Raccolgo la x di grado massimo.',
+                correct: false,
+                errorTag: 'Strategia polinomiale usata su esponenziale',
+                feedback: 'Non è un polinomio: qui si applicano le proprietà delle potenze all\'infinito.'
+              }
+            ],
+            theory: 'Ricorda: per <strong>a &gt; 1</strong> si ha a<sup>+∞</sup> = +∞ e a<sup>−∞</sup> = 0⁺; per <strong>0 &lt; a &lt; 1</strong> si inverte (a<sup>+∞</sup> = 0⁺ e a<sup>−∞</sup> = +∞).'
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: 'Qual è quindi il valore del limite?',
+            options: [
+              {
+                tex: resTex,
+                correct: true,
+                feedback: `Esatto! Applicando la regola otteniamo proprio ${resTex === '+\\infty' ? '+∞' : resTex}.`
+              },
+              {
+                tex: wrongRes1,
+                correct: false,
+                errorTag: 'Errore valutazione esponenziale all\'infinito',
+                feedback: `Ricontrolla: ${baseNote}!`
+              },
+              {
+                tex: wrongRes2,
+                correct: false,
+                errorTag: 'Errore di segno o traslazione',
+                feedback: `Attenzione al segno dell'esponente e all'eventuale costante sommata!`
+              },
+              {
+                tex: `1`,
+                correct: false,
+                errorTag: 'Confuso esponente ∞ con esponente 0',
+                feedback: 'Un\'esponenziale fa 1 solo quando il suo esponente vale 0, non quando tende all\'infinito!'
+              }
+            ],
+            theory: `Il limite vale esattamente <strong>${resTex === '+\\infty' ? '+∞' : resTex}</strong>.`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `In base al risultato ottenuto per x → ${dirLabel}, cosa deduci sul grafico?`,
+            options: isFiniteRes
+              ? [
+                  {
+                    text: `Asintoto Orizzontale di equazione y = ${horizVal} (per x → ${dirLabel}).`,
+                    correct: true,
+                    feedback: `Bravissimo! Un limite finito per x → ${dirLabel} significa che la retta y = ${horizVal} è asintoto orizzontale.`
+                  },
+                  {
+                    text: `Asintoto Verticale di equazione x = ${horizVal}.`,
+                    correct: false,
+                    errorTag: 'Scambiato asintoto orizzontale con verticale',
+                    feedback: `Qui x → ${dirLabel} e la y tende a ${horizVal}: l'asintoto è ORIZZONTALE (y = ${horizVal})!`
+                  },
+                  {
+                    text: 'Nessun asintoto.',
+                    correct: false,
+                    errorTag: 'Asintoto orizzontale non riconosciuto',
+                    feedback: `Poiché il limite per x → ${dirLabel} è finito (${horizVal}), esiste l'asintoto orizzontale y = ${horizVal}!`
+                  },
+                  {
+                    text: 'Discontinuità di 3ª specie.',
+                    correct: false,
+                    errorTag: 'Confusione asintoto con discontinuità',
+                    feedback: 'Per x → ±∞ non si parla di discontinuità, ma di asintoti orizzontali.'
+                  }
+                ]
+              : [
+                  {
+                    text: `Nessun asintoto orizzontale per x → ${dirLabel} (la funzione cresce verso +∞).`,
+                    correct: true,
+                    feedback: 'Esatto! Poiché il limite è +∞, da questo lato non c\'è alcun asintoto orizzontale.'
+                  },
+                  {
+                    text: 'Asintoto orizzontale y = 0.',
+                    correct: false,
+                    errorTag: 'Asintoto orizzontale inesistente da questo lato',
+                    feedback: 'Per questa funzione y = 0 è asintoto solo per x → −∞, NON per x → +∞ dove tende a +∞!'
+                  },
+                  {
+                    text: 'Asintoto verticale.',
+                    correct: false,
+                    errorTag: 'Confusione asintoto verticale con x → +∞',
+                    feedback: 'L\'asintoto verticale si ha solo per x → x₀ finito, mai per x → +∞!'
+                  },
+                  {
+                    text: 'Discontinuità di 2ª specie.',
+                    correct: false,
+                    errorTag: 'Discontinuità attribuita all\'infinito',
+                    feedback: 'L\'esponenziale con esponente polinomiale è continua su tutto ℝ!'
+                  }
+                ],
+            theory: isFiniteRes
+              ? `Le funzioni esponenziali hanno tipicamente un <strong>asintoto orizzontale unilatero</strong> (qui <strong>y = ${horizVal}</strong> per x → ${dirLabel}).`
+              : `Quando <span class="font-semibold">lim (x → +∞) f(x) = +∞</span> non esiste asintoto orizzontale per x → +∞.`
+          }
+        ]
+      };
+    }
+
+    // --- 9. Esponenziale con Esponente Frazionario per x -> x0± ---
+    function genExpFracX0() {
+      const r = pick([-2, -1, 0, 1, 2, 3]);
+      const side = pick(['+', '-']);
+      const k = pick([1, 2, -1, -2]);
+      const denTex = r === 0 ? 'x' : formatLinear(1, -r);
+      const base = pick(['e', '2', '3']);
+
+      // Segno dell'esponente k / 0^side
+      const expSign = (k > 0 ? 1 : -1) * (side === '+' ? 1 : -1);
+      const expLimTex = expSign > 0 ? '+\\infty' : '-\\infty';
+      const resTex = expSign > 0 ? '+\\infty' : '0';
+      const wrongRes = expSign > 0 ? '0' : '+\\infty';
+
+      return {
+        id: `exp_frac_x0_${base}_${k}_${r}_${side}`,
+        category: 'esponenziale',
+        categoryLabel: 'Esponenziale con Esponente Frazionario (x → x₀±)',
+        tex: `\\lim_{x \\to ${r}^{${side}}} ${base}^{\\frac{${k}}{${denTex}}}`,
+        plainText: `lim (x->${r}${side}) ${base}^(${k}/(${denTex}))`,
+        resultTex: resTex,
+        interpretationShort: expSign > 0
+          ? `Asintoto Verticale ${side === '+' ? 'destro' : 'sinistro'} x = ${r} • Discontinuità di 2ª specie`
+          : `Limite finito (0) da ${side === '+' ? 'destra' : 'sinistra'}, ma infinito dall'altro lato ⇒ Discontinuità di 2ª specie in x = ${r}`,
+        graph: {
+          type: 'exp_frac_x0',
+          x0: r,
+          infSide: (k > 0) ? 'right' : 'left'
+        },
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: `Osserva l'esponente frazionario per x → ${r}${side}. Che forma assume l'esponente?`,
+            options: [
+              {
+                tex: `\\frac{${k}}{0^{${side}}} \\;\\text{(NON è una forma di indecisione)}`,
+                correct: true,
+                feedback: `Esatto! L'esponente è del tipo k/0±, che tende subito a ${expSign > 0 ? '+∞' : '−∞'}.`
+              },
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{0}{0}\\right]`,
+                correct: false,
+                errorTag: 'Confusione k/0 con 0/0 nell\'esponente',
+                feedback: `Il numeratore dell'esponente è la costante ${k} ≠ 0, quindi non è 0/0!`
+              },
+              {
+                tex: `\\text{Forma di indecisione } \\left[\\frac{\\infty}{\\infty}\\right]`,
+                correct: false,
+                errorTag: 'Confusione x → x₀ con x → ∞',
+                feedback: `Qui x tende a ${r}${side}, non all'infinito.`
+              },
+              {
+                tex: `\\text{L'esponente tende a } 0`,
+                correct: false,
+                errorTag: 'Confusione k/0 con 0/k',
+                feedback: `Dividere ${k} per un numero vicinissimo a 0 fa esplodere l'esponente all'infinito, non a 0!`
+              }
+            ],
+            theory: 'Nelle esponenziali con <strong>esponente frazionario</strong>, si calcola <strong>prima il limite dell\'esponente</strong> e poi si applica la base.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: `Qual è il limite dell'esponente (${k})/(${denTex}) per x → ${r}${side}?`,
+            options: [
+              {
+                tex: `\\lim_{x \\to ${r}^{${side}}} \\frac{${k}}{${denTex}} = ${expLimTex}`,
+                correct: true,
+                feedback: `Perfetto! Per la regola dei segni (${k > 0 ? '+' : '−'}) / 0${side} = ${expSign > 0 ? '+∞' : '−∞'}.`
+              },
+              {
+                tex: `\\lim_{x \\to ${r}^{${side}}} \\frac{${k}}{${denTex}} = ${expSign > 0 ? '-\\infty' : '+\\infty'}`,
+                correct: false,
+                errorTag: 'Errore di segno nell\'esponente frazionario',
+                feedback: `Ricontrolla i segni: numeratore ${k} (${k > 0 ? '+' : '−'}) diviso denominatore 0${side} (${side}) dà ${expSign > 0 ? '+∞' : '−∞'}!`
+              },
+              {
+                tex: `\\lim_{x \\to ${r}^{${side}}} \\frac{${k}}{${denTex}} = 0`,
+                correct: false,
+                errorTag: 'Errore k/0 = 0 nell\'esponente',
+                feedback: 'Un numero diverso da 0 diviso 0± fa ±∞, mai 0!'
+              },
+              {
+                tex: `\\lim_{x \\to ${r}^{${side}}} \\frac{${k}}{${denTex}} = ${k}`,
+                correct: false,
+                errorTag: 'Denominatore ignorato nell\'esponente',
+                feedback: `Non puoi ignorare (${denTex}) che tende a 0${side}!`
+              }
+            ],
+            theory: `Calcolato l'esponente (${expSign > 0 ? '+∞' : '−∞'}), ora basta valutare <strong>${base}<sup>${expSign > 0 ? '+∞' : '−∞'}</sup></strong>.`
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: `Poiché la base è ${base} > 1 e l'esponente tende a ${expSign > 0 ? '+∞' : '−∞'}, quanto vale il limite della funzione?`,
+            options: [
+              {
+                tex: resTex,
+                correct: true,
+                feedback: `Esatto! Poiché ${base} > 1, ${base}^(${expSign > 0 ? '+∞' : '−∞'}) = ${expSign > 0 ? '+∞' : '0⁺ (cioè 0)'}.`
+              },
+              {
+                tex: wrongRes,
+                correct: false,
+                errorTag: 'Invertito a⁺∞ con a⁻∞',
+                feedback: `Ricorda: per base > 1 (${base}), elevare a +∞ dà +∞, mentre elevare a −∞ dà 0⁺!`
+              },
+              {
+                tex: `-\\infty`,
+                correct: false,
+                errorTag: 'Esponenziale negativo',
+                feedback: `Un'esponenziale con base positiva (${base}) è SEMPRE positiva: non può mai fare −∞!`
+              },
+              {
+                tex: `1`,
+                correct: false,
+                errorTag: 'Confuso esponente ∞ con 0',
+                feedback: `${base} elevato a ${expSign > 0 ? '+∞' : '−∞'} non fa 1 (fa 1 solo quando l'esponente è 0).`
+              }
+            ],
+            theory: `Con base ${base} &gt; 1: <strong>${base}<sup>+∞</sup> = +∞</strong> e <strong>${base}<sup>−∞</sup> = 0⁺</strong>.`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `Come interpreti il punto x = ${r} (escluso dal dominio) sapendo che da questo lato il limite è ${expSign > 0 ? '+∞' : '0'} (e dal lato opposto è ${expSign > 0 ? '0' : '+∞'})?`,
+            options: [
+              {
+                text: expSign > 0
+                  ? `Asintoto Verticale ${side === '+' ? 'destro' : 'sinistro'} x = ${r} e discontinuità di 2ª specie in x = ${r}.`
+                  : `Da questo lato tende a 0, ma dal lato opposto tende a +∞: quindi in x = ${r} c'è comunque una discontinuità di 2ª specie (con asintoto verticale unilatero).`,
+                correct: true,
+                feedback: `Bravissimo! Basta che ALMENO UNO tra limite destro e sinistro in x = ${r} sia infinito perché ci sia una discontinuità di 2ª specie (e un asintoto verticale unilatero x = ${r}).`
+              },
+              {
+                text: `Discontinuità di 3ª specie (eliminabile) in x = ${r}.`,
+                correct: false,
+                errorTag: 'Confusione 2ª specie unilatera con 3ª specie',
+                feedback: `Attenzione! Per avere 3ª specie devono essere finiti e uguali ENTRAMBI i limiti (destro e sinistro). Qui da un lato la funzione va a +∞, quindi è 2ª specie!`
+              },
+              {
+                text: `Discontinuità di 1ª specie (di salto) in x = ${r}.`,
+                correct: false,
+                errorTag: 'Confusione 2ª specie con 1ª specie',
+                feedback: 'Nella 1ª specie (salto) entrambi i limiti destro e sinistro devono essere FINITI. Qui uno dei due è +∞, quindi è 2ª specie!'
+              },
+              {
+                text: `Asintoto Orizzontale y = ${r}.`,
+                correct: false,
+                errorTag: 'Confusione asintoto verticale con orizzontale',
+                feedback: `Stiamo studiando x → ${r} (finito): gli asintoti in punti finiti sono sempre VERTICALI (x = ${r})!`
+              }
+            ],
+            theory: `Le esponenziali con esponente fratto del tipo <span class="font-semibold">a<sup>k/(x−r)</sup></span> hanno sempre in <strong>x = r</strong> una <strong>discontinuità di 2ª specie</strong> con <strong>asintoto verticale unilatero</strong> (da un lato → +∞, dall'altro → 0⁺).`
+          }
+        ]
+      };
+    }
+
+    // --- 10. Esponenziale con Esponente Frazionario per x -> ±∞ (F.I. ∞/∞ all'esponente) ---
+    function genExpFracInf() {
+      const a = pick([-2, -1, 1, 2, 3]);
+      const b = pick([-4, -1, 2, 3]);
+      const c = pick([-3, -2, 1, 2, 4]);
+      const dir = pick(['+\\infty', '-\\infty']);
+      const useBase2 = Math.random() < 0.45;
+      const base = useBase2 ? '2' : 'e';
+
+      const numTex = formatLinear(a, b);
+      const denTex = formatLinear(1, c);
+
+      let resTex, resPlain, resNum;
+      if (useBase2) {
+        if (a === -2) { resTex = '\\frac{1}{4}'; resPlain = '1/4'; resNum = 0.25; }
+        else if (a === -1) { resTex = '\\frac{1}{2}'; resPlain = '1/2'; resNum = 0.5; }
+        else if (a === 1) { resTex = '2'; resPlain = '2'; resNum = 2; }
+        else if (a === 2) { resTex = '4'; resPlain = '4'; resNum = 4; }
+        else { resTex = '8'; resPlain = '8'; resNum = 8; }
+      } else {
+        if (a === 1) { resTex = 'e'; resPlain = 'e'; resNum = 2.7; }
+        else if (a === -1) { resTex = 'e^{-1} = \\frac{1}{e}'; resPlain = '1/e'; resNum = 0.37; }
+        else { resTex = `e^{${a}}`; resPlain = `e^${a}`; resNum = Math.exp(a); }
+      }
+
+      return {
+        id: `exp_frac_inf_${base}_${numTex}_${denTex}_${dir}`,
+        category: 'esponenziale',
+        categoryLabel: 'Esponenziale con Esponente Frazionario (x → ±∞)',
+        tex: `\\lim_{x \\to ${dir}} ${base}^{\\frac{${numTex}}{${denTex}}}`,
+        plainText: `lim (x->${dir === '+\\infty' ? '+inf' : '-inf'}) ${base}^((${numTex})/(${denTex}))`,
+        resultTex: resTex,
+        interpretationShort: `Asintoto Orizzontale y = ${resPlain}`,
+        graph: { type: 'horiz_asymptote', L: resPlain, side: dir === '+\\infty' ? 'right' : 'left' },
+        steps: [
+          {
+            title: 'Sostituzione',
+            shortLabel: 'Sostituisci',
+            question: `Guardando l'esponente frazionario per x → ${dir === '+\\infty' ? '+∞' : '−∞'}, quale forma di indecisione compare?`,
+            options: [
+              {
+                tex: `\\text{All'esponente compare la F.I. } \\left[\\frac{\\infty}{\\infty}\\right]`,
+                correct: true,
+                feedback: 'Esatto! Prima di calcolare l\'esponenziale dobbiamo risolvere la forma di indecisione ∞/∞ presente nell\'esponente.'
+              },
+              {
+                tex: `\\text{All'esponente compare la F.I. } \\left[\\frac{0}{0}\\right]`,
+                correct: false,
+                errorTag: 'Confusione ∞/∞ con 0/0',
+                feedback: 'Qui x tende all\'infinito, quindi numeratore e denominatore dell\'esponente vanno all\'infinito, non a 0!'
+              },
+              {
+                tex: `\\text{Nessuna forma di indecisione: fa subito } +\\infty`,
+                correct: false,
+                errorTag: 'F.I. all\'esponente ignorata',
+                feedback: 'Attenzione! Non puoi dire subito +∞: devi prima calcolare il limite della frazione all\'esponente!'
+              },
+              {
+                tex: `\\text{All'esponente compare la F.I. } [+\\infty - \\infty]`,
+                correct: false,
+                errorTag: 'Confusione ∞/∞ con ∞ − ∞',
+                feedback: 'L\'esponente è una frazione tra due polinomi di 1° grado: è ∞/∞.'
+              }
+            ],
+            theory: 'Quando l\'esponente di un\'esponenziale presenta una F.I. <strong>∞/∞</strong>, si risolve prima quel limite con le regole delle razionali fratte.'
+          },
+          {
+            title: 'Strategia',
+            shortLabel: 'Strategia',
+            question: `L'esponente (${numTex})/(${denTex}) ha numeratore e denominatore entrambi di 1° grado. A cosa tende l'esponente?`,
+            options: [
+              {
+                tex: `\\lim_{x \\to ${dir}} \\frac{${numTex}}{${denTex}} = ${a} \\;\\text{(rapporto dei coefficienti di } x\\text{)}`,
+                correct: true,
+                feedback: `Perfetto! Avendo lo stesso grado (1), l'esponente tende al rapporto ${a}/1 = ${a}.`
+              },
+              {
+                tex: `\\lim_{x \\to ${dir}} \\frac{${numTex}}{${denTex}} = 0`,
+                correct: false,
+                errorTag: 'Confusione gradi uguali con grado N < D',
+                feedback: 'Numeratore e denominatore hanno lo STESSO grado (1), quindi il limite non è 0 ma il rapporto dei coefficienti!'
+              },
+              {
+                tex: `\\lim_{x \\to ${dir}} \\frac{${numTex}}{${denTex}} = ${dir}`,
+                correct: false,
+                errorTag: 'Confusione gradi uguali con grado N > D',
+                feedback: 'Le x si semplificano perché hanno lo stesso grado: resta un numero finito!'
+              },
+              {
+                tex: `\\lim_{x \\to ${dir}} \\frac{${numTex}}{${denTex}} = \\frac{${b}}{${c}}`,
+                correct: false,
+                errorTag: 'Presi i termini noti invece dei coefficienti di x',
+                feedback: 'Per x → ±∞ comandano i coefficienti delle x di grado massimo, non i termini noti!'
+              }
+            ],
+            theory: `Una volta trovato che l'esponente tende a <strong>${a}</strong>, basta elevare la base <strong>${base}</strong> a questo valore.`
+          },
+          {
+            title: 'Calcolo',
+            shortLabel: 'Calcola',
+            question: `Applicando la base ${base} al limite dell'esponente (${a}), quanto vale il limite completo?`,
+            options: [
+              {
+                tex: resTex,
+                correct: true,
+                feedback: `Bravissimo! Elevando ${base} alla ${a} otteniamo ${resPlain}.`
+              },
+              {
+                tex: `${a}`,
+                correct: false,
+                errorTag: 'Dimenticata la base esponenziale',
+                feedback: `Attenzione! ${a} è solo il limite dell'ESPONENTE! Non dimenticare la base ${base}: il risultato è ${base}^(${a})!`
+              },
+              {
+                tex: `+\\infty`,
+                correct: false,
+                errorTag: 'Risultato infinito per esponente finito',
+                feedback: `Poiché l'esponente tende al numero finito ${a}, anche la potenza tende a un numero finito!`
+              },
+              {
+                tex: `0`,
+                correct: false,
+                errorTag: 'Risultato 0 per esponente finito',
+                feedback: `Un'esponenziale tende a 0 solo se l'esponente tende a −∞ (con base > 1), non se tende a ${a}!`
+              }
+            ],
+            theory: `Per continuità della funzione esponenziale, <span class="font-semibold">lim ${base}<sup>g(x)</sup> = ${base}<sup>lim g(x)</sup></span>.`
+          },
+          {
+            title: 'Interpretazione Grafica',
+            shortLabel: 'Grafico',
+            question: `Il limite per x → ${dir === '+\\infty' ? '+∞' : '−∞'} è il numero finito ${resPlain}. Cosa significa sul grafico?`,
+            options: [
+              {
+                text: `Asintoto Orizzontale di equazione y = ${resPlain}.`,
+                correct: true,
+                feedback: `Perfetto! Un limite finito per x → ${dir === '+\\infty' ? '+∞' : '−∞'} individua sempre un asintoto orizzontale.`
+              },
+              {
+                text: `Asintoto Verticale di equazione x = ${resPlain}.`,
+                correct: false,
+                errorTag: 'Scambiato asintoto orizzontale con verticale',
+                feedback: 'Quando x → ±∞ e la y tende a un numero finito, l\'asintoto è ORIZZONTALE (y = costante), mai verticale!'
+              },
+              {
+                text: 'Discontinuità di 3ª specie (eliminabile).',
+                correct: false,
+                errorTag: 'Confusione asintoto orizzontale con 3ª specie',
+                feedback: 'Qui x → ±∞, non verso un punto finito: si parla di asintoto orizzontale!'
+              },
+              {
+                text: 'Nessun asintoto.',
+                correct: false,
+                errorTag: 'Asintoto orizzontale non riconosciuto',
+                feedback: `Il limite all'infinito è un numero reale finito (${resPlain}): quindi esiste l'asintoto orizzontale y = ${resPlain}!`
+              }
+            ],
+            theory: `Anche con le esponenziali ad esponente frazionario, un limite finito <strong>L</strong> per x → ±∞ genera l'<strong>Asintoto Orizzontale y = L</strong>.`
+          }
+        ]
+      };
+    }
+
+    // Mappa dei generatori per categoria
+    const GENERATORS_BY_CATEGORY = {
+      razionale_intera: [genPolyDirect, genPolyInfMinusInf],
+      razionale_fratta_inf: [genFracInfSameDeg, genFracInfDegLess, genFracInfDegMore],
+      razionale_fratta_x0: [genFracVerticalAsymptote, genFracZeroOverZero],
+      esponenziale: [genExpPoly, genExpFracX0, genExpFracInf]
+    };
+
+    const ALL_GENERATORS = [
+      genPolyDirect,
+      genPolyInfMinusInf,
+      genFracInfSameDeg,
+      genFracInfDegLess,
+      genFracInfDegMore,
+      genFracVerticalAsymptote,
+      genFracZeroOverZero,
+      genExpPoly,
+      genExpFracX0,
+      genExpFracInf
+    ];
+
+    // =========================================================================
+    // 3. STATO DELL'APPLICAZIONE
+    // =========================================================================
+    const state = {
+      currentExercise: null,
+      lastExerciseId: null,
+      exerciseCount: 0,
+      currentStepIndex: 0,
+      stepCompleted: false,
+      currentStepOptions: [],
+      wrongOptionIndices: new Set(),
+      exerciseErrors: [],
+      completedStepsLog: [],
+      sessionHistory: []
+    };
+
+    // =========================================================================
+    // 4. NAVIGAZIONE TRA SCHEDE
+    // =========================================================================
+    function switchTab(tabName) {
+      const tabs = ['practice', 'map', 'history'];
+      tabs.forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tabName) {
+          view.classList.remove('hidden');
+          btn.classList.add('bg-white', 'text-indigo-700', 'shadow-sm');
+          btn.classList.remove('text-slate-600');
+        } else {
+          view.classList.add('hidden');
+          btn.classList.remove('bg-white', 'text-indigo-700', 'shadow-sm');
+          btn.classList.add('text-slate-600');
+        }
+      });
+
+      if (tabName === 'map') {
+        renderStaticMath();
+      } else if (tabName === 'history') {
+        renderSessionHistory();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // =========================================================================
+    // 5. FLUSSO DELL'ESERCIZIO GUIDATO
+    // =========================================================================
+
+    function startNewExercise() {
+      const selectedCat = document.getElementById('category-select').value;
+      const pool = selectedCat === 'random'
+        ? ALL_GENERATORS
+        : (GENERATORS_BY_CATEGORY[selectedCat] || ALL_GENERATORS);
+
+      // Genera un esercizio garantendo che sia diverso dal precedente
+      let ex = null;
+      let attempts = 0;
+      do {
+        const genFn = pick(pool);
+        ex = genFn();
+        attempts++;
+      } while (ex.id === state.lastExerciseId && attempts < 14);
+
+      state.currentExercise = ex;
+      state.lastExerciseId = ex.id;
+      state.exerciseCount++;
+      state.currentStepIndex = 0;
+      state.stepCompleted = false;
+      state.wrongOptionIndices = new Set();
+      state.exerciseErrors = [];
+      state.completedStepsLog = [];
+
+      // Aggiorna UI
+      document.getElementById('exercise-number-label').textContent = `Esercizio #${state.exerciseCount}`;
+      document.getElementById('function-display').innerHTML = renderTex(ex.tex, true);
+      document.getElementById('final-summary-card').classList.add('hidden');
+      document.getElementById('final-summary-card').innerHTML = '';
+      document.getElementById('completed-steps-board').classList.add('hidden');
+      document.getElementById('completed-steps-list').innerHTML = '';
+
+      prepareStep(0);
+    }
+
+    function prepareStep(stepIndex) {
+      state.currentStepIndex = stepIndex;
+      state.stepCompleted = false;
+      state.wrongOptionIndices = new Set();
+
+      const step = state.currentExercise.steps[stepIndex];
+      state.currentStepOptions = shuffle(step.options);
+
+      renderStepper();
+      renderStepArea();
+    }
+
+    function renderStepper() {
+      const container = document.getElementById('stepper-container');
+      const steps = state.currentExercise.steps;
+
+      container.innerHTML = steps.map((s, idx) => {
+        const isDone = idx < state.currentStepIndex || (idx === state.currentStepIndex && state.stepCompleted);
+        const isActive = idx === state.currentStepIndex && !state.stepCompleted;
+
+        let badgeClass = 'bg-slate-200 text-slate-500';
+        let textClass = 'text-slate-400';
+        if (isDone) {
+          badgeClass = 'bg-emerald-500 text-white';
+          textClass = 'text-emerald-700 font-semibold';
+        } else if (isActive) {
+          badgeClass = 'bg-indigo-600 text-white ring-4 ring-indigo-100';
+          textClass = 'text-indigo-700 font-bold';
+        }
+
+        return `
+          <div class="flex flex-col items-center text-center gap-1">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${badgeClass}">
+              ${isDone ? '✓' : idx + 1}
+            </div>
+            <span class="text-[11px] sm:text-xs leading-tight ${textClass}">${s.shortLabel}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderStepArea() {
+      const stepArea = document.getElementById('step-area');
+      const step = state.currentExercise.steps[state.currentStepIndex];
+
+      const optionsHtml = state.currentStepOptions.map((opt, idx) => {
+        const isWrong = state.wrongOptionIndices.has(idx);
+        const isCorrectRevealed = state.stepCompleted && opt.correct;
+        const disabled = isWrong || state.stepCompleted;
+
+        let cardStyle = 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/40 cursor-pointer';
+        let letterStyle = 'bg-slate-100 text-slate-600';
+
+        if (isWrong) {
+          cardStyle = 'border-rose-200 bg-rose-50/60 text-slate-400 opacity-75 cursor-not-allowed';
+          letterStyle = 'bg-rose-200 text-rose-700';
+        } else if (isCorrectRevealed) {
+          cardStyle = 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200';
+          letterStyle = 'bg-emerald-600 text-white';
+        } else if (state.stepCompleted) {
+          cardStyle = 'border-slate-100 bg-slate-50 opacity-50 cursor-default';
+        }
+
+        const content = opt.tex
+          ? `<div class="text-base sm:text-lg math-scroll">${renderTex(opt.tex, false)}</div>`
+          : `<div class="text-sm sm:text-base font-medium leading-snug">${opt.text}</div>`;
+
+        const letters = ['A', 'B', 'C', 'D'];
+        return `
+          <button type="button"
+            onclick="handleOptionClick(${idx})"
+            ${disabled ? 'disabled' : ''}
+            class="w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3.5 ${cardStyle}">
+            <span class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-extrabold shrink-0 ${letterStyle}">
+              ${isCorrectRevealed ? '✓' : (isWrong ? '✕' : letters[idx])}
+            </span>
+            <div class="flex-1 min-w-0">${content}</div>
+          </button>
+        `;
+      }).join('');
+
+      stepArea.innerHTML = `
+        <div class="space-y-2">
+          <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600">
+            <span>Passo ${state.currentStepIndex + 1} di 4</span>
+            <span>•</span>
+            <span>${step.title}</span>
+          </div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+            ${step.question}
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3">
+          ${optionsHtml}
+        </div>
+
+        <div id="feedback-box" class="hidden"></div>
+      `;
+    }
+
+    function handleOptionClick(optIdx) {
+      if (state.stepCompleted || state.wrongOptionIndices.has(optIdx)) return;
+
+      const step = state.currentExercise.steps[state.currentStepIndex];
+      const chosen = state.currentStepOptions[optIdx];
+
+      if (chosen.correct) {
+        state.stepCompleted = true;
+
+        // Salva nella lavagna dei passi completati
+        state.completedStepsLog.push({
+          stepNum: state.currentStepIndex + 1,
+          title: step.title,
+          answerHtml: chosen.tex ? renderTex(chosen.tex, false) : chosen.text
+        });
+
+        renderStepper();
+        renderStepArea();
+        renderCompletedBoard();
+
+        // Mostra feedback positivo + pillola di teoria + bottone prosegui
+        const isLastStep = state.currentStepIndex === state.currentExercise.steps.length - 1;
+        const fbBox = document.getElementById('feedback-box');
+        fbBox.classList.remove('hidden');
+        fbBox.className = 'rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5 space-y-3 fade-in';
+        fbBox.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">✓</div>
+            <div class="space-y-1.5 text-sm text-emerald-950">
+              <p class="font-bold text-emerald-800">Ragionamento corretto!</p>
+              <p>${chosen.feedback}</p>
+            </div>
+          </div>
+
+          <div class="rounded-lg bg-white/90 border border-indigo-100 p-3.5 text-xs sm:text-sm text-slate-700">
+            <span class="font-bold text-indigo-700 uppercase tracking-wide text-[11px] block mb-1">
+              Perché? (Pillola di Teoria)
+            </span>
+            ${step.theory}
+          </div>
+
+          <div class="pt-1 flex justify-end">
+            <button onclick="${isLastStep ? 'finishExercise()' : 'nextStep()'}"
+              class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-all shadow-sm">
+              ${isLastStep ? 'Vedi Riepilogo Completo e Analisi' : 'Vai al Passo Successivo →'}
+            </button>
+          </div>
+        `;
+      } else {
+        // Risposta errata: registra errore diagnostico e guida lo studente
+        state.wrongOptionIndices.add(optIdx);
+        state.exerciseErrors.push({
+          stepNum: state.currentStepIndex + 1,
+          stepTitle: step.title,
+          errorTag: chosen.errorTag || 'Errore di ragionamento',
+          chosenHtml: chosen.tex ? renderTex(chosen.tex, false) : chosen.text,
+          explanation: chosen.feedback,
+          theoryReminder: step.theory
+        });
+
+        renderStepArea();
+
+        const fbBox = document.getElementById('feedback-box');
+        fbBox.classList.remove('hidden');
+        fbBox.className = 'rounded-xl border border-rose-200 bg-rose-50 p-4 sm:p-5 space-y-2 fade-in';
+        fbBox.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="w-7 h-7 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">!</div>
+            <div class="space-y-1 text-sm text-rose-950">
+              <p class="font-bold text-rose-800">Non proprio — ragioniamo su questo errore:</p>
+              <p>${chosen.feedback}</p>
+              <p class="text-xs text-rose-700 font-medium pt-1">Riprova scegliendo un'altra risposta tra quelle rimaste.</p>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function nextStep() {
+      prepareStep(state.currentStepIndex + 1);
+    }
+
+    function renderCompletedBoard() {
+      const board = document.getElementById('completed-steps-board');
+      const list = document.getElementById('completed-steps-list');
+      if (state.completedStepsLog.length === 0) {
+        board.classList.add('hidden');
+        return;
+      }
+      board.classList.remove('hidden');
+      list.innerHTML = state.completedStepsLog.map(item => `
+        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-100">
+          <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md w-fit shrink-0">
+            Passo ${item.stepNum}: ${item.title}
+          </span>
+          <div class="text-slate-800 font-medium">${item.answerHtml}</div>
+        </div>
+      `).join('');
+    }
+
+    // =========================================================================
+    // 6. SCHIZZO GRAFICO INTERPRETATIVO (SVG)
+    // =========================================================================
+
+    function buildLimitGraphSVG(cfg) {
+      const w = 440;
+      const h = 170;
+      const cx = 220;
+      const cy = 95;
+
+      let content = '';
+
+      if (cfg.type === 'continuous') {
+        content = `
+          <path d="M 80 135 Q 200 115 260 68 T 360 35" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="260" y1="${cy}" x2="260" y2="68" stroke="#94a3b8" stroke-dasharray="4 4" stroke-width="1.5"/>
+          <line x1="${cx}" y1="68" x2="260" y2="68" stroke="#94a3b8" stroke-dasharray="4 4" stroke-width="1.5"/>
+          <circle cx="260" cy="68" r="6" fill="#4f46e5" stroke="#ffffff" stroke-width="2"/>
+          <text x="260" y="${cy + 16}" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">x₀ = ${cfg.x0}</text>
+          <text x="${cx - 10}" y="72" text-anchor="end" font-size="11" font-weight="700" fill="#334155">L = ${cfg.L}</text>
+          <text x="280" y="54" font-size="11" font-weight="700" fill="#059669">Punto di continuità</text>
+        `;
+      } else if (cfg.type === 'diverge_inf') {
+        if (cfg.side === 'right' && cfg.sign > 0) {
+          content = `
+            <path d="M 150 115 Q 250 110 310 70 T 385 22" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+            <text x="372" y="42" text-anchor="end" font-size="11" font-weight="700" fill="#4f46e5">f(x) → +∞</text>
+            <text x="372" y="56" text-anchor="end" font-size="10" font-weight="600" fill="#64748b">(nessun A.O.)</text>
+          `;
+        } else if (cfg.side === 'right' && cfg.sign < 0) {
+          content = `
+            <path d="M 150 75 Q 250 80 310 115 T 385 156" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+            <text x="372" y="138" text-anchor="end" font-size="11" font-weight="700" fill="#4f46e5">f(x) → −∞</text>
+            <text x="372" y="152" text-anchor="end" font-size="10" font-weight="600" fill="#64748b">(nessun A.O.)</text>
+          `;
+        } else if (cfg.side === 'left' && cfg.sign > 0) {
+          content = `
+            <path d="M 290 115 Q 190 110 130 70 T 55 22" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+            <text x="68" y="42" text-anchor="start" font-size="11" font-weight="700" fill="#4f46e5">f(x) → +∞</text>
+            <text x="68" y="56" text-anchor="start" font-size="10" font-weight="600" fill="#64748b">(nessun A.O.)</text>
+          `;
+        } else {
+          content = `
+            <path d="M 290 75 Q 190 80 130 115 T 55 156" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+            <text x="68" y="138" text-anchor="start" font-size="11" font-weight="700" fill="#4f46e5">f(x) → −∞</text>
+            <text x="68" y="152" text-anchor="start" font-size="10" font-weight="600" fill="#64748b">(nessun A.O.)</text>
+          `;
+        }
+      } else if (cfg.type === 'horiz_asymptote') {
+        const yAsym = (cfg.L === 0 || cfg.L === '0') ? cy : (String(cfg.L).startsWith('-') ? cy + 32 : cy - 34);
+        const curvePath = cfg.side === 'right'
+          ? `M 160 ${yAsym - 36} Q 240 ${yAsym - 14} 395 ${yAsym - 3}`
+          : `M 280 ${yAsym - 36} Q 200 ${yAsym - 14} 45 ${yAsym - 3}`;
+        content = `
+          <line x1="35" y1="${yAsym}" x2="405" y2="${yAsym}" stroke="#059669" stroke-width="2.2" stroke-dasharray="6 4"/>
+          <path d="${curvePath}" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+          <text x="${cfg.side === 'right' ? 395 : 45}" y="${yAsym + 16}" text-anchor="${cfg.side === 'right' ? 'end' : 'start'}" font-size="11" font-weight="700" fill="#059669">Asintoto Orizzontale y = ${cfg.L}</text>
+        `;
+      } else if (cfg.type === 'vert_asymptote') {
+        const xAsym = 265;
+        let curvePath = '';
+        if (cfg.side === 'right' && cfg.sign > 0) {
+          curvePath = `M ${xAsym + 5} 20 Q ${xAsym + 18} 80 390 92`;
+        } else if (cfg.side === 'right' && cfg.sign < 0) {
+          curvePath = `M ${xAsym + 5} 156 Q ${xAsym + 18} 106 390 98`;
+        } else if (cfg.side === 'left' && cfg.sign > 0) {
+          curvePath = `M ${xAsym - 5} 20 Q ${xAsym - 18} 80 65 92`;
+        } else {
+          curvePath = `M ${xAsym - 5} 156 Q ${xAsym - 18} 106 65 98`;
+        }
+        content = `
+          <line x1="${xAsym}" y1="14" x2="${xAsym}" y2="158" stroke="#e11d48" stroke-width="2.2" stroke-dasharray="6 4"/>
+          <path d="${curvePath}" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+          <text x="${xAsym + 8}" y="32" font-size="11" font-weight="700" fill="#be123c">A.V. x = ${cfg.x0}</text>
+          <text x="${xAsym + 8}" y="46" font-size="10" font-weight="600" fill="#be123c">(2ª specie)</text>
+        `;
+      } else if (cfg.type === 'removable_hole') {
+        content = `
+          <path d="M 85 135 L 254 66" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M 266 61 L 370 20" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="260" y1="${cy}" x2="260" y2="69" stroke="#94a3b8" stroke-dasharray="4 4" stroke-width="1.5"/>
+          <line x1="${cx}" y1="63" x2="254" y2="63" stroke="#94a3b8" stroke-dasharray="4 4" stroke-width="1.5"/>
+          <circle cx="260" cy="63" r="6" fill="#ffffff" stroke="#e11d48" stroke-width="3"/>
+          <text x="260" y="${cy + 16}" text-anchor="middle" font-size="11" font-weight="700" fill="#be123c">x₀ = ${cfg.x0}</text>
+          <text x="${cx - 10}" y="67" text-anchor="end" font-size="11" font-weight="700" fill="#334155">L = ${cfg.L}</text>
+          <text x="275" y="75" font-size="11" font-weight="700" fill="#0284c7">Buco (3ª specie)</text>
+        `;
+      } else if (cfg.type === 'exp_frac_x0') {
+        const xAsym = 250;
+        const rightInf = cfg.infSide === 'right';
+        const infBranch = rightInf
+          ? `M ${xAsym + 5} 18 Q ${xAsym + 24} 72 395 82`
+          : `M ${xAsym - 5} 18 Q ${xAsym - 24} 72 50 82`;
+        const zeroBranch = rightInf
+          ? `M 55 82 Q 180 86 ${xAsym - 6} ${cy}`
+          : `M 390 82 Q 310 86 ${xAsym + 6} ${cy}`;
+        content = `
+          <line x1="${xAsym}" y1="14" x2="${xAsym}" y2="158" stroke="#e11d48" stroke-width="2.2" stroke-dasharray="6 4"/>
+          <path d="${infBranch}" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="${zeroBranch}" fill="none" stroke="#4f46e5" stroke-width="3.5" stroke-linecap="round"/>
+          <circle cx="${xAsym}" cy="${cy}" r="5.5" fill="#ffffff" stroke="#e11d48" stroke-width="2.8"/>
+          <text x="${xAsym + 8}" y="30" font-size="11" font-weight="700" fill="#be123c">x = ${cfg.x0} (2ª specie)</text>
+          <text x="${xAsym + 8}" y="44" font-size="10" font-weight="600" fill="#be123c">A.V. unilatero + 0⁺</text>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 ${w} ${h}" class="w-full max-w-md mx-auto h-auto bg-slate-50/70 rounded-xl border border-slate-100" role="img" aria-label="Schema grafico del risultato del limite">
+          <!-- Asse x -->
+          <line x1="28" y1="${cy}" x2="${w - 22}" y2="${cy}" stroke="#cbd5e1" stroke-width="2"/>
+          <polygon points="${w - 18},${cy} ${w - 26},${cy - 4} ${w - 26},${cy + 4}" fill="#94a3b8"/>
+          <text x="${w - 14}" y="${cy + 14}" font-size="11" font-weight="700" fill="#64748b">x</text>
+          <!-- Asse y -->
+          <line x1="${cx}" y1="160" x2="${cx}" y2="16" stroke="#cbd5e1" stroke-width="2"/>
+          <polygon points="${cx},12 ${cx - 4},20 ${cx + 4},20" fill="#94a3b8"/>
+          <text x="${cx + 8}" y="20" font-size="11" font-weight="700" fill="#64748b">y</text>
+          <!-- Contenuto specifico -->
+          ${content}
+        </svg>
+      `;
+    }
+
+    // =========================================================================
+    // 7. SCHEDA RIEPILOGATIVA FINALE + ANALISI ERRORI
+    // =========================================================================
+
+    function finishExercise() {
+      const ex = state.currentExercise;
+      const errors = state.exerciseErrors;
+
+      // Salva nello storico sessione
+      state.sessionHistory.unshift({
+        num: state.exerciseCount,
+        categoryLabel: ex.categoryLabel,
+        tex: ex.tex,
+        plainText: ex.plainText,
+        resultTex: ex.resultTex,
+        interpretationShort: ex.interpretationShort,
+        errorCount: errors.length,
+        errorTags: [...new Set(errors.map(e => e.errorTag))]
+      });
+      document.getElementById('badge-count').textContent = state.sessionHistory.length;
+
+      // Costruisci sezione analisi errori
+      let errorAnalysisHtml = '';
+      if (errors.length === 0) {
+        errorAnalysisHtml = `
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-5 flex items-start gap-3.5">
+            <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-extrabold text-lg shrink-0">★</div>
+            <div>
+              <h4 class="font-bold text-emerald-900">Percorso netto: 0 errori!</h4>
+              <p class="text-sm text-emerald-800 mt-1">
+                Hai svolto correttamente l'esercizio (<strong>${ex.categoryLabel}</strong>), scelto la strategia esatta e interpretato correttamente il risultato grafico al primo tentativo.
+              </p>
+            </div>
+          </div>
+        `;
+      } else {
+        const itemsHtml = errors.map(err => `
+          <div class="rounded-xl bg-white border border-amber-200 p-4 space-y-1.5">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-xs font-bold">
+                Passo ${err.stepNum} (${err.stepTitle})
+              </span>
+              <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-xs font-semibold">
+                ${err.errorTag}
+              </span>
+            </div>
+            <div class="text-xs text-slate-500">
+              Avevi risposto: <span class="font-medium text-slate-700">${err.chosenHtml}</span>
+            </div>
+            <p class="text-sm text-slate-800"><strong>Perché era sbagliato:</strong> ${err.explanation}</p>
+            <p class="text-xs text-indigo-700 bg-indigo-50 rounded-lg px-3 py-2 mt-1">
+              <strong>Da ricordare:</strong> ${err.theoryReminder}
+            </p>
+          </div>
+        `).join('');
+
+        errorAnalysisHtml = `
+          <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-5 space-y-3">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-sm">!</span>
+              <h4 class="font-bold text-amber-950">
+                Analisi dei tuoi errori (${errors.length} ${errors.length === 1 ? 'errore rilevato' : 'errori rilevati'})
+              </h4>
+            </div>
+            <p class="text-xs sm:text-sm text-amber-900">
+              Sbagliare è il modo migliore per fissare il metodo: rileggi i punti in cui hai avuto un dubbio prima di passare al prossimo esercizio.
+            </p>
+            <div class="space-y-3 pt-1">
+              ${itemsHtml}
+            </div>
+          </div>
+        `;
+      }
+
+      // Costruisci svolgimento completo passo-passo
+      const fullSolutionStepsHtml = state.completedStepsLog.map(item => `
+        <div class="flex items-start gap-3">
+          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-extrabold flex items-center justify-center shrink-0 mt-0.5">
+            ${item.stepNum}
+          </span>
+          <div class="text-sm">
+            <span class="font-bold text-slate-900">${item.title}:</span>
+            <span class="text-slate-700 ml-1">${item.answerHtml}</span>
+          </div>
+        </div>
+      `).join('');
+
+      const summaryCard = document.getElementById('final-summary-card');
+      summaryCard.innerHTML = `
+        <div class="bg-white rounded-2xl border-2 border-indigo-200 shadow-md overflow-hidden">
+          <div class="bg-indigo-50 px-5 sm:px-7 py-4 border-b border-indigo-100 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-600">Esercizio Completato</span>
+              <h3 class="text-lg font-extrabold text-slate-900">Risposta Completa Riepilogativa</h3>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-white border border-indigo-200 text-xs font-bold text-indigo-700">
+              ${ex.categoryLabel}
+            </span>
+          </div>
+
+          <div class="p-5 sm:p-7 space-y-6">
+            <!-- Limite e Risultato Finale -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="rounded-xl bg-slate-50 border border-slate-200 p-4 text-center">
+                <div class="text-xs font-semibold uppercase text-slate-400 mb-1">Limite Calcolato</div>
+                <div class="text-lg sm:text-xl math-scroll">${renderTex(`${ex.tex} = ${ex.resultTex}`, true)}</div>
+              </div>
+              <div class="rounded-xl bg-indigo-50 border border-indigo-200 p-4 flex flex-col justify-center text-center">
+                <div class="text-xs font-semibold uppercase text-indigo-500 mb-1">Interpretazione Grafica</div>
+                <div class="text-sm sm:text-base font-bold text-indigo-950">${ex.interpretationShort}</div>
+              </div>
+            </div>
+
+            <!-- Schizzo Grafico SVG -->
+            <div class="rounded-xl border border-slate-200 bg-white p-4">
+              <div class="text-xs font-bold uppercase tracking-wider text-slate-400 text-center mb-2">
+                Visualizzazione Qualitativa sul Piano Cartesiano
+              </div>
+              ${buildLimitGraphSVG(ex.graph)}
+            </div>
+
+            <!-- Sintesi dei 4 passi -->
+            <div class="rounded-xl bg-slate-50 border border-slate-200 p-5 space-y-3">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Algoritmo Risolutivo Completo
+              </h4>
+              <div class="space-y-2.5">
+                ${fullSolutionStepsHtml}
+              </div>
+            </div>
+
+            <!-- Analisi errori personalizzata -->
+            ${errorAnalysisHtml}
+
+            <!-- Pulsanti finali -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100">
+              <button onclick="switchTab('map')"
+                class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
+                Rivedi la Mappa dei Limiti
+              </button>
+              <button onclick="startNewExercise()"
+                class="w-full sm:w-auto px-6 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-all shadow-sm">
+                Genera un Nuovo Esercizio Casuale →
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      summaryCard.classList.remove('hidden');
+      summaryCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // =========================================================================
+    // 8. STORICO SESSIONE E COPIA REPORT PER CLASSROOM
+    // =========================================================================
+
+    function renderSessionHistory() {
+      const total = state.sessionHistory.length;
+      const perfect = state.sessionHistory.filter(h => h.errorCount === 0).length;
+      const totalErrors = state.sessionHistory.reduce((acc, h) => acc + h.errorCount, 0);
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-perfect').textContent = perfect;
+      document.getElementById('stat-errors').textContent = totalErrors;
+
+      const list = document.getElementById('history-list');
+      if (total === 0) {
+        list.innerHTML = `
+          <div class="text-center py-8 text-slate-400 text-sm">
+            Non hai ancora completato nessun esercizio. Inizia subito dalla scheda "Esercizio Guidato"!
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = state.sessionHistory.map(item => `
+        <div class="rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/70">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-400">#${item.num}</span>
+              <span class="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-md">${item.categoryLabel}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 pt-1">
+              <span>${renderTex(`${item.tex} = ${item.resultTex}`, false)}</span>
+            </div>
+            <div class="text-xs text-slate-600 font-medium">${item.interpretationShort}</div>
+            ${item.errorTags.length > 0
+              ? `<div class="text-xs text-amber-800 pt-1"><strong>Punti da ripassare:</strong> ${item.errorTags.join(', ')}</div>`
+              : ''}
+          </div>
+          <div class="shrink-0">
+            ${item.errorCount === 0
+              ? `<span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">0 errori ✓</span>`
+              : `<span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold">${item.errorCount} ${item.errorCount === 1 ? 'errore' : 'errori'}</span>`
+            }
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /**
+     * Copia un resoconto testuale pulito pronto da incollare su Google Classroom.
+     * Usa document.execCommand('copy') per piena compatibilità anche dentro iframe.
+     */
+    function copyClassroomReport() {
+      const total = state.sessionHistory.length;
+      if (total === 0) {
+        showToast('Completa almeno un esercizio prima di copiare il resoconto.');
+        return;
+      }
+
+      const perfect = state.sessionHistory.filter(h => h.errorCount === 0).length;
+      const totalErrors = state.sessionHistory.reduce((acc, h) => acc + h.errorCount, 0);
+
+      let lines = [
+        'RESOCONTO ATTIVITÀ DI RECUPERO – CALCOLO DEI LIMITI',
+        `Esercizi completati: ${total} | Senza errori: ${perfect} | Errori analizzati: ${totalErrors}`,
+        '----------------------------------------'
+      ];
+
+      [...state.sessionHistory].reverse().forEach(item => {
+        const errNote = item.errorCount === 0
+          ? '0 errori'
+          : `${item.errorCount} errori (${item.errorTags.join('; ')})`;
+        lines.push(`#${item.num} [${item.categoryLabel}] ${item.plainText} | ${item.interpretationShort} -> ${errNote}`);
+      });
+
+      const textToCopy = lines.join('\n');
+      const textarea = document.createElement('textarea');
+      textarea.value = textToCopy;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+
+      try {
+        document.execCommand('copy');
+        showToast('Resoconto copiato! Ora puoi incollarlo su Google Classroom.');
+      } catch (err) {
+        showToast('Impossibile copiare automaticamente. Seleziona il riepilogo manualmente.');
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+
+    // =========================================================================
+    // 9. INIZIALIZZAZIONE AL CARICAMENTO DELLA PAGINA
+    // =========================================================================
+    window.addEventListener('load', () => {
+      renderStaticMath();
+      startNewExercise();
+    });
+  </script>
+</body>
+</html>
